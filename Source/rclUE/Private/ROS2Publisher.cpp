@@ -121,7 +121,7 @@ void UROS2Publisher::Publish()
 }
 
 // this is an attempt to create a inheritance based publish msg to clean up blueprints and the need for casting
-void UROS2Publisher::PublishMsg(UROS2GenericMsg* Message)
+void UROS2Publisher::PublishMsg(UROS2GenericMsg* Message, bool async)
 {
     TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2Publisher::PublishMsg")
     if(State != UROS2State::Initialized)
@@ -135,8 +135,24 @@ void UROS2Publisher::PublishMsg(UROS2GenericMsg* Message)
         UE_LOG(LogROS2Publisher, Error, TEXT("[%s] PublishMsg called with invalid Message parameter."), *GetName());
         return;
     }
-    
+
+    if (async)
     {
+        if (AsyncPublisherFuture.IsValid())
+        {
+            if (!AsyncPublisherFuture.IsReady())
+            {
+                UE_LOG(LogROS2Publisher, Warning, TEXT("[%s] Async PublishMsg is still publishing - dropping message."), *GetName());
+                return;
+            }
+        }
+
+        AsyncPublisherFuture = Async(EAsyncExecution::TaskGraph, [this, Message]()
+            {
+                TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2Publisher::PublishMsg_AsyncLambda")
+                RCSOFTCHECK(rcl_publish(&RclPublisher, Message->Get(), nullptr));
+            });
+    } else {
         FScopeLock Lock(&Mutex);
         RCSOFTCHECK(rcl_publish(&RclPublisher, Message->Get(), nullptr));
     }
