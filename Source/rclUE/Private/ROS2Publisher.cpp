@@ -71,6 +71,11 @@ void UROS2Publisher::Init()
 void UROS2Publisher::Destroy()
 {
     UE_LOG(LogROS2Publisher, Verbose, TEXT("Publisher Destroy Start (%s)"), *__LOG_INFO__);
+    if (AsyncPublisherFuture.IsValid())
+    {
+        AsyncPublisherFuture.Wait();
+    }
+    
     if (TopicMessage != nullptr)
     {
         TopicMessage->Fini();
