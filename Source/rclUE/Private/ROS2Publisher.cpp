@@ -112,17 +112,7 @@ void UROS2Publisher::UpdateAndPublishMessage()
 void UROS2Publisher::Publish()
 {
     TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2Publisher::Publish")
-    if(State != UROS2State::Initialized)
-    {
-        UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Publish called when publisher has not been initialised."), *GetName());
-        return;
-    }
-    
-    {
-        FScopeLock Lock(&Mutex);
-        PublishedMsg = TopicMessage->Get();
-        RCSOFTCHECK(rcl_publish(&RclPublisher, PublishedMsg, nullptr));
-    }
+    PublishMsg(TopicMessage, false);
 }
 
 // this is an attempt to create a inheritance based publish msg to clean up blueprints and the need for casting
