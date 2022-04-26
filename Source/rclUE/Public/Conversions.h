@@ -2,14 +2,16 @@
 
 #include <GeographicCoordinates.h>
 #include <iterator>
+#include <geometry_msgs/msg/detail/polygon__struct.h>
+
 
 #include "geometry_msgs/msg/vector3.h"
 #include "geometry_msgs/msg/quaternion.h"
 #include "geographic_msgs/msg/geo_point.h"
 #include "builtin_interfaces/msg/time.h"
+#include "Engine/Polys.h"
+#include "Msgs/ROS2OdometryMsg.h"
 #include "Msgs/ROS2TimeMsg.h"
-
-// builtin_interfaces__msg__Time --> FDateTime ???
 
 namespace ROS2MsgToUE
 {
@@ -23,11 +25,27 @@ namespace ROS2MsgToUE
 		return FVector(in.x, in.y, in.z);
 	}
 
+	inline FVector FromPoint(const geometry_msgs__msg__Point& in)
+	{
+		return FVector(in.x, in.y, in.z);
+	}
+
+	inline FVector From(const geometry_msgs__msg__Point32& in)
+	{
+		return FVector(in.x, in.y, in.z);
+	}
+
 	inline FQuat FromQuaternion(const geometry_msgs__msg__Quaternion& in)
 	{
 		return FQuat(in.x, in.y, in.z, in.w);
 	}
 
+	inline FGuid From(const unique_identifier_msgs__msg__UUID& in)
+	{
+		uint32* uuid = (uint32*) &in.uuid; // todo - ensure the endianness is correct
+		return FGuid(uuid[0], uuid[1], uuid[2], uuid[3]);
+	}
+	
 	template <size_t N>
 	inline TArray<float> FromArray(const double (&in)[N])
 	{
@@ -39,6 +57,33 @@ namespace ROS2MsgToUE
 		return out;
 	}
 
+	template <typename T, typename ROST>
+	inline TArray<T> FromStructSequence(const ROST& in)
+	{
+		TArray<T> Out;
+		
+		for (int i = 0; i < in.size; i++)
+		{
+			T InStruct;
+			InStruct.SetFromROS2(in.data[i]);
+			Out.Add(InStruct);
+		}
+		
+		return Out;
+	}
+	
+	template <typename T, typename ROSSequenceT>
+	inline T FromSequence(const ROSSequenceT& in) // TODO: change to be template param of TArray
+	{
+		T Out;
+		for (int i = 0; i < in.size; i++)
+		{
+			Out.Add(From(in.data[i]));
+		}
+		
+		return Out;
+	}
+	
 	inline FDateTime FromTime(const builtin_interfaces__msg__Time &in)
 	{
 		return FDateTime::FromUnixTimestamp(in.sec) + FTimespan(0,0,0,0, in.nanosec);
@@ -61,6 +106,29 @@ namespace UEToROS2Msg
 		out.z = in.Z;
 	}
 
+	inline void SetPoint(const FVector& in, geometry_msgs__msg__Point& out)
+	{
+		out.x = in.X;
+		out.y = in.Y;
+		out.z = in.Z;
+	}
+	
+	inline void Set(const FVector& in, geometry_msgs__msg__Point32& out)
+	{
+		out.x = in.X;
+		out.y = in.Y;
+		out.z = in.Z;
+	}
+
+	inline void Set(const FGuid& in, unique_identifier_msgs__msg__UUID& out)
+	{
+		uint32* uuid = (uint32*) &out.uuid; // todo - ensure the endianness is correct
+		uuid[0] = in.A;
+		uuid[1] = in.B;
+		uuid[2] = in.C;
+		uuid[3] = in.D;
+	}
+	
 	inline void SetQuaternion(const FQuat& in, geometry_msgs__msg__Quaternion& out)
 	{
 		out.x = in.X;
@@ -69,6 +137,34 @@ namespace UEToROS2Msg
 		out.w = in.W;
 	}
 
+	template <typename T, typename ROST>
+	inline void SetStructSequence(const TArray<T>& in, ROST &out)
+	{
+		out.data = (decltype(out.data)) FMemory::Realloc(out.data, in.Num() * sizeof(decltype(*out.data)));
+
+		for (int i = 0; i < in.Num(); i++)
+		{
+			in[i].SetROS2(out.data[i]);
+		}
+
+		out.size = in.Num();
+		out.capacity = in.Num();
+	}
+	
+	template <typename T, typename ROSSequenceT>
+	inline void SetSequence(const T& in, ROSSequenceT &out) // TODO: change to be template param of TArray
+	{
+		out.data = (decltype(out.data)) FMemory::Realloc(out.data, in.Num() * sizeof(decltype(*out.data)));
+
+		for (int i = 0; i < in.Num(); i++)
+		{
+			Set(in[i], out.data[i]);
+		}
+
+		out.size = in.Num();
+		out.capacity = in.Num();
+	}
+	
 	template <size_t N>
 	inline void SetSequence(const TArray<float>& in, double (&out)[N])
 	{
@@ -78,6 +174,11 @@ namespace UEToROS2Msg
 		{
 			out[i] = in[i];
 		}
+	}
+
+	inline void SetPolygon(const FPoly& in, geometry_msgs__msg__Polygon& out)
+	{
+		SetSequence(in.Vertices, out.points);
 	}
 
 	inline void SetTime(const FDateTime& in, builtin_interfaces__msg__Time& out)

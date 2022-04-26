@@ -8,7 +8,7 @@
 #include "geometry_msgs/msg/accel_with_covariance.h"
 
 #include "Msgs/ROS2GenericMsg.h"
-#include "rclcUtilities.h"
+#include "ROS2AccelMsg.h"
 
 #include "ROS2AccelWithCovarianceMsg.generated.h"
 
@@ -19,49 +19,31 @@ struct RCLUE_API FROSAccelWithCovariance
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector accel_linear;
+	FROSAccel accel;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector accel_angular;
-
-	TArray<double> covariance;
+	TArray<float> covariance;
 
 	
 
 	void SetFromROS2(const geometry_msgs__msg__AccelWithCovariance& in_ros_data)
 	{
-    	accel_linear.X = in_ros_data.accel.linear.x;
-		accel_linear.Y = in_ros_data.accel.linear.y;
-		accel_linear.Z = in_ros_data.accel.linear.z;
-
-		accel_angular.X = in_ros_data.accel.angular.x;
-		accel_angular.Y = in_ros_data.accel.angular.y;
-		accel_angular.Z = in_ros_data.accel.angular.z;
+		accel.SetFromROS2(in_ros_data.accel);
 
 		for (int i = 0; i < 36; i++)
 		{
 			covariance.Add(in_ros_data.covariance[i]);
 		}
-
-		
 	}
 
 	void SetROS2(geometry_msgs__msg__AccelWithCovariance& out_ros_data) const
 	{
-    	out_ros_data.accel.linear.x = accel_linear.X;
-		out_ros_data.accel.linear.y = accel_linear.Y;
-		out_ros_data.accel.linear.z = accel_linear.Z;
-
-		out_ros_data.accel.angular.x = accel_angular.X;
-		out_ros_data.accel.angular.y = accel_angular.Y;
-		out_ros_data.accel.angular.z = accel_angular.Z;
+		accel.SetROS2(out_ros_data.accel);
 
 		for (int i = 0; i < 36; i++)
 		{
 			out_ros_data.covariance[i] = covariance[i];
 		}
-
-		
 	}
 };
 
