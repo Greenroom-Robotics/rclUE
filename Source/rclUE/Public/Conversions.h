@@ -1,17 +1,28 @@
 #pragma once
 
-#include <GeographicCoordinates.h>
 #include <iterator>
-#include <geometry_msgs/msg/detail/polygon__struct.h>
-
 
 #include "geometry_msgs/msg/vector3.h"
 #include "geometry_msgs/msg/quaternion.h"
 #include "geographic_msgs/msg/geo_point.h"
+#include "geometry_msgs/msg/point32.h"
+#include "geometry_msgs/msg/polygon.h"
 #include "builtin_interfaces/msg/time.h"
+
+#include "GeographicCoordinates.h"
 #include "Engine/Polys.h"
 #include "Msgs/ROS2OdometryMsg.h"
 #include "Msgs/ROS2TimeMsg.h"
+
+namespace ArrayInitialisers
+{
+	inline TArray<float> FloatArray(ssize_t elems)
+	{
+		TArray<float> a;
+		a.Init(0.0, elems);
+		return a;
+	}
+}
 
 namespace ROS2MsgToUE
 {
@@ -33,6 +44,11 @@ namespace ROS2MsgToUE
 	inline FVector From(const geometry_msgs__msg__Point32& in)
 	{
 		return FVector(in.x, in.y, in.z);
+	}
+
+	inline FString From(const rosidl_runtime_c__String& in)
+	{
+		return FString(in.size, in.data);
 	}
 
 	inline FQuat FromQuaternion(const geometry_msgs__msg__Quaternion& in)
@@ -128,6 +144,17 @@ namespace UEToROS2Msg
 		uuid[2] = in.C;
 		uuid[3] = in.D;
 	}
+
+	inline void Set(const FString& in, rosidl_runtime_c__String& out)
+	{
+		auto Str = StringCast<ANSICHAR>(*in);
+		
+		out.data = (decltype(out.data)) FMemory::Realloc(out.data, (Str.Length() + 1) * sizeof(decltype(*out.data)));
+		memcpy(out.data, Str.Get(), Str.Length());
+		out.data[Str.Length()] = '\0'; // rosidl c Strings are null terminated
+		out.size = Str.Length();
+		out.capacity = Str.Length() + 1;
+	}
 	
 	inline void SetQuaternion(const FQuat& in, geometry_msgs__msg__Quaternion& out)
 	{
@@ -140,7 +167,13 @@ namespace UEToROS2Msg
 	template <typename T, typename ROST>
 	inline void SetStructSequence(const TArray<T>& in, ROST &out)
 	{
-		out.data = (decltype(out.data)) FMemory::Realloc(out.data, in.Num() * sizeof(decltype(*out.data)));
+		// out.data = (decltype(out.data)) FMemory::Realloc(out.data, in.Num() * sizeof(decltype(*out.data)));
+		if (out.data != nullptr)
+		{
+			FMemory::Free(out.data);
+		}
+		
+		out.data = (decltype(out.data)) FMemory::MallocZeroed(in.Num() * sizeof(decltype(*out.data)));
 
 		for (int i = 0; i < in.Num(); i++)
 		{
@@ -154,7 +187,12 @@ namespace UEToROS2Msg
 	template <typename T, typename ROSSequenceT>
 	inline void SetSequence(const T& in, ROSSequenceT &out) // TODO: change to be template param of TArray
 	{
-		out.data = (decltype(out.data)) FMemory::Realloc(out.data, in.Num() * sizeof(decltype(*out.data)));
+		if (out.data != nullptr)
+		{
+			FMemory::Free(out.data);
+		}
+		
+		out.data = (decltype(out.data)) FMemory::MallocZeroed(in.Num() * sizeof(decltype(*out.data)));
 
 		for (int i = 0; i < in.Num(); i++)
 		{

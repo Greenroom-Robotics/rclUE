@@ -5,6 +5,7 @@
 
 #include <CoreMinimal.h>
 
+#include "Conversions.h"
 #include "geometry_msgs/msg/accel_with_covariance.h"
 
 #include "Msgs/ROS2GenericMsg.h"
@@ -22,28 +23,18 @@ public:
 	FROSAccel accel;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<float> covariance;
-
+	TArray<float> covariance = ArrayInitialisers::FloatArray(36);;
 	
-
 	void SetFromROS2(const geometry_msgs__msg__AccelWithCovariance& in_ros_data)
 	{
 		accel.SetFromROS2(in_ros_data.accel);
-
-		for (int i = 0; i < 36; i++)
-		{
-			covariance.Add(in_ros_data.covariance[i]);
-		}
+		covariance = ROS2MsgToUE::FromArray(in_ros_data.covariance);
 	}
 
 	void SetROS2(geometry_msgs__msg__AccelWithCovariance& out_ros_data) const
 	{
 		accel.SetROS2(out_ros_data.accel);
-
-		for (int i = 0; i < 36; i++)
-		{
-			out_ros_data.covariance[i] = covariance[i];
-		}
+		UEToROS2Msg::SetSequence(covariance, out_ros_data.covariance);
 	}
 };
 

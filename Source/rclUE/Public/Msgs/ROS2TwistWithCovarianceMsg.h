@@ -5,6 +5,7 @@
 
 #include <CoreMinimal.h>
 
+#include "Conversions.h"
 #include "geometry_msgs/msg/twist_with_covariance.h"
 
 #include "Msgs/ROS2GenericMsg.h"
@@ -22,26 +23,18 @@ public:
 	FROSTwist twist;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<float> covariance;
+	TArray<float> covariance = ArrayInitialisers::FloatArray(36); //double[36]
 	
 	void SetFromROS2(const geometry_msgs__msg__TwistWithCovariance& in_ros_data)
 	{
 		twist.SetFromROS2(in_ros_data.twist);
-
-		for (int i = 0; i < 36; i++)
-		{
-			covariance.Add(in_ros_data.covariance[i]);
-		}
+		covariance = ROS2MsgToUE::FromArray(in_ros_data.covariance);
 	}
 
 	void SetROS2(geometry_msgs__msg__TwistWithCovariance& out_ros_data) const
 	{
     	twist.SetROS2(out_ros_data.twist);
-
-		for (int i = 0; i < 36; i++)
-		{
-			out_ros_data.covariance[i] = covariance[i];
-		}
+		UEToROS2Msg::SetSequence(covariance, out_ros_data.covariance);
 	}
 };
 
