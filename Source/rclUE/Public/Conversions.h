@@ -1,8 +1,6 @@
 #pragma once
 
 #include <iterator>
-#include <geometry_msgs/msg/detail/polygon__struct.h>
-
 
 #include "geometry_msgs/msg/vector3.h"
 #include "geometry_msgs/msg/quaternion.h"
