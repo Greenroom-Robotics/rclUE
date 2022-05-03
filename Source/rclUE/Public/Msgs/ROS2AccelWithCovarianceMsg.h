@@ -23,7 +23,7 @@ public:
 	FROSAccel accel;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<float> covariance = ArrayInitialisers::FloatArray(36);;
+	TArray<float> covariance = ArrayInitialisers::FloatArray(36);
 	
 	void SetFromROS2(const geometry_msgs__msg__AccelWithCovariance& in_ros_data)
 	{
