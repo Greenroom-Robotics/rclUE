@@ -141,10 +141,21 @@ inline FDateTime From(const builtin_interfaces__msg__Time & in)
   return FDateTime::FromUnixTimestamp(in.sec) + FTimespan(0, 0, 0, 0, in.nanosec);
 }
 
-template <typename T, size_t N>
+template <typename T, size_t N, std::enable_if_t<std::is_same<T, uint8>::value, bool> = false>
 inline TArray<int> FromArray(const T (&in)[N])
 {
   TArray<int> out;
+  for (int i = 0; i < N; i++)
+  {
+    out.Add(in[i]);
+  }
+  return out;
+}
+
+template <size_t N>
+inline TArray<uint8> FromArray(const uint8 (&in)[N])
+{
+  TArray<uint8> out;
   for (int i = 0; i < N; i++)
   {
     out.Add(in[i]);
