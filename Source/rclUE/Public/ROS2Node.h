@@ -12,9 +12,9 @@
 #include <Engine/GameInstance.h>
 
 #include "ROS2Subsystem.h"
-#include "Actions/ROS2GenericAction.h"
+#include "ROS2GenericAction.h"
 #include "ROS2GenericMsg.h"
-#include "Srvs/ROS2GenericSrv.h"
+#include "ROS2GenericSrv.h"
 #include "ROS2Node.generated.h"
 
 class UROS2Support;

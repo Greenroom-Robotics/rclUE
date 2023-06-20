@@ -7,7 +7,7 @@
 
 #include "ROS2Node.h"
 
-#include <Actions/ROS2GenericAction.h>
+#include <ROS2GenericAction.h>
 #include <Components/ActorComponent.h>
 #include <CoreMinimal.h>
 

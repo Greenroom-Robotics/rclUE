@@ -12,7 +12,7 @@
 // rclUE
 #include "ROS2GenericMsg.h"
 #include "ROS2Node.h"
-#include "Srvs/ROS2GenericSrv.h"
+#include "ROS2GenericSrv.h"
 
 #include "ROS2ServiceClient.generated.h"
 
