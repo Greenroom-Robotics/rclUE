@@ -21,15 +21,15 @@ struct RCLUE_API FROSGeoPoint
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float latitude;
+    double latitude = 0.0;
     // rclc type: double latitude
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float longitude;
+    double longitude = 0.0;
     // rclc type: double longitude
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float altitude;
+    double altitude = 0.0;
     // rclc type: double altitude
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

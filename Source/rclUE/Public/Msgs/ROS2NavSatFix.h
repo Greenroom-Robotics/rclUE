@@ -15,7 +15,7 @@
 
 
 UENUM(BlueprintType)
-enum class UROSPositionCovarianceType : uint8
+enum class UROSNavSatFixPositionCovarianceTypeEnum : uint8
 {
     COVARIANCE_TYPE_UNKNOWN = 0,
     COVARIANCE_TYPE_APPROXIMATED = 1,
@@ -41,15 +41,15 @@ public:
     // rclc type: sensor_msgs__msg__NavSatStatus status
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float latitude;
+    double latitude = 0.0;
     // rclc type: double latitude
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float longitude;
+    double longitude = 0.0;
     // rclc type: double longitude
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float altitude;
+    double altitude = 0.0;
     // rclc type: double altitude
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -57,7 +57,7 @@ public:
     // rclc type: double position_covariance[9]
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    UROSPositionCovarianceType position_covariance_type;
+    UROSNavSatFixPositionCovarianceTypeEnum position_covariance_type = UROSNavSatFixPositionCovarianceTypeEnum::COVARIANCE_TYPE_UNKNOWN;
     // rclc type: uint8_t position_covariance_type
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)
@@ -68,7 +68,7 @@ public:
         longitude = in_ros_data.longitude;
         altitude = in_ros_data.altitude;
         position_covariance = ROS2MsgToUE::FromArray(in_ros_data.position_covariance);
-        position_covariance_type = static_cast<UROSPositionCovarianceType>(in_ros_data.position_covariance_type);
+        position_covariance_type = static_cast<UROSNavSatFixPositionCovarianceTypeEnum>(in_ros_data.position_covariance_type);
     }
 
     void SetROS2(ros_msg_c_typename& out_ros_data) const

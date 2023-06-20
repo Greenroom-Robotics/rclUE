@@ -23,7 +23,7 @@ struct RCLUE_API FROSInertia
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float m;
+    double m = 0.0;
     // rclc type: double m
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -31,27 +31,27 @@ public:
     // rclc type: geometry_msgs__msg__Vector3 com
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float ixx;
+    double ixx = 0.0;
     // rclc type: double ixx
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float ixy;
+    double ixy = 0.0;
     // rclc type: double ixy
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float ixz;
+    double ixz = 0.0;
     // rclc type: double ixz
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float iyy;
+    double iyy = 0.0;
     // rclc type: double iyy
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float iyz;
+    double iyz = 0.0;
     // rclc type: double iyz
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float izz;
+    double izz = 0.0;
     // rclc type: double izz
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

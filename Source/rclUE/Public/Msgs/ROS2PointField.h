@@ -26,15 +26,15 @@ public:
     // rclc type: rosidl_runtime_c__String name
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int offset;
+    int64 offset = 0ul;
     // rclc type: uint32_t offset
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int datatype;
+    uint8 datatype = 0;
     // rclc type: uint8_t datatype
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int count;
+    int64 count = 0ul;
     // rclc type: uint32_t count
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

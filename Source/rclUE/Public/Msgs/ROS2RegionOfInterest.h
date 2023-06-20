@@ -21,23 +21,23 @@ struct RCLUE_API FROSRegionOfInterest
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int x_offset;
+    int64 x_offset = 0ul;
     // rclc type: uint32_t x_offset
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int y_offset;
+    int64 y_offset = 0ul;
     // rclc type: uint32_t y_offset
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int height;
+    int64 height = 0ul;
     // rclc type: uint32_t height
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int width;
+    int64 width = 0ul;
     // rclc type: uint32_t width
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool do_rectify;
+    bool do_rectify = true;
     // rclc type: bool do_rectify
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

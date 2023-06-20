@@ -21,19 +21,19 @@ struct RCLUE_API FROSQuaternion
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float x;
+    double x = 0.0;
     // rclc type: double x
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float y;
+    double y = 0.0;
     // rclc type: double y
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float z;
+    double z = 0.0;
     // rclc type: double z
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float w;
+    double w = 1.0;
     // rclc type: double w
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

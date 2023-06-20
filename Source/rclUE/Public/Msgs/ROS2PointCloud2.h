@@ -28,11 +28,11 @@ public:
     // rclc type: std_msgs__msg__Header header
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int height;
+    int64 height = 0ul;
     // rclc type: uint32_t height
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int width;
+    int64 width = 0ul;
     // rclc type: uint32_t width
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -40,23 +40,23 @@ public:
     // rclc type: sensor_msgs__msg__PointField__Sequence fields
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool is_bigendian;
+    bool is_bigendian = true;
     // rclc type: bool is_bigendian
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int point_step;
+    int64 point_step = 0ul;
     // rclc type: uint32_t point_step
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int row_step;
+    int64 row_step = 0ul;
     // rclc type: uint32_t row_step
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    TArray<int> data;
+    TArray<uint8> data;
     // rclc type: rosidl_runtime_c__uint8__Sequence data
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool is_dense;
+    bool is_dense = true;
     // rclc type: bool is_dense
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)
@@ -68,7 +68,7 @@ public:
         is_bigendian = in_ros_data.is_bigendian;
         point_step = in_ros_data.point_step;
         row_step = in_ros_data.row_step;
-        data = ROS2MsgToUE::FromSequence<int>(in_ros_data.data);
+        data = ROS2MsgToUE::FromSequence<uint8>(in_ros_data.data);
         is_dense = in_ros_data.is_dense;
     }
 

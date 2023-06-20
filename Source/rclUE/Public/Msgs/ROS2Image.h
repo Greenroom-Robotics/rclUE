@@ -27,11 +27,11 @@ public:
     // rclc type: std_msgs__msg__Header header
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int height;
+    int64 height = 0ul;
     // rclc type: uint32_t height
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int width;
+    int64 width = 0ul;
     // rclc type: uint32_t width
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -39,11 +39,11 @@ public:
     // rclc type: rosidl_runtime_c__String encoding
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int is_bigendian;
+    uint8 is_bigendian = 0;
     // rclc type: uint8_t is_bigendian
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int step;
+    int64 step = 0ul;
     // rclc type: uint32_t step
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)

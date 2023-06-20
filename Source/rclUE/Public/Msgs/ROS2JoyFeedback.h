@@ -12,7 +12,7 @@
 
 
 UENUM(BlueprintType)
-enum class UROSType : uint8
+enum class UROSJoyFeedbackTypeEnum : uint8
 {
     TYPE_LED = 0,
     TYPE_RUMBLE = 1,
@@ -29,20 +29,20 @@ struct RCLUE_API FROSJoyFeedback
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    UROSType type;
+    UROSJoyFeedbackTypeEnum type = UROSJoyFeedbackTypeEnum::TYPE_LED;
     // rclc type: uint8_t type
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int id;
+    uint8 id = 0;
     // rclc type: uint8_t id
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float intensity;
+    float intensity = 0.0f;
     // rclc type: float intensity
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)
     {
-        type = static_cast<UROSType>(in_ros_data.type);
+        type = static_cast<UROSJoyFeedbackTypeEnum>(in_ros_data.type);
         id = in_ros_data.id;
         intensity = in_ros_data.intensity;
     }

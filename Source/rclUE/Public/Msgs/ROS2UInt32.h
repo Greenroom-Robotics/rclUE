@@ -21,7 +21,7 @@ struct RCLUE_API FROSUInt32
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int64 data;
+    int64 data = 0ul;
     // rclc type: uint32_t data
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

@@ -12,7 +12,7 @@
 
 
 UENUM(BlueprintType)
-enum class UROSError : uint8
+enum class UROSTF2ErrorErrorEnum : uint8
 {
     NO_ERROR = 0,
     LOOKUP_ERROR = 1,
@@ -33,7 +33,7 @@ struct RCLUE_API FROSTF2Error
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    UROSError error;
+    UROSTF2ErrorErrorEnum error = UROSTF2ErrorErrorEnum::NO_ERROR;
     // rclc type: uint8_t error
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -42,7 +42,7 @@ public:
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)
     {
-        error = static_cast<UROSError>(in_ros_data.error);
+        error = static_cast<UROSTF2ErrorErrorEnum>(in_ros_data.error);
         error_string = ROS2MsgToUE::From(in_ros_data.error_string);
     }
 

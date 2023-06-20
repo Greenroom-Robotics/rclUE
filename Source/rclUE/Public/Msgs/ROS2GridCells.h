@@ -28,11 +28,11 @@ public:
     // rclc type: std_msgs__msg__Header header
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float cell_width;
+    float cell_width = 0.0f;
     // rclc type: float cell_width
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float cell_height;
+    float cell_height = 0.0f;
     // rclc type: float cell_height
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)

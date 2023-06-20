@@ -27,31 +27,31 @@ public:
     // rclc type: std_msgs__msg__Header header
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float angle_min;
+    float angle_min = 0.0f;
     // rclc type: float angle_min
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float angle_max;
+    float angle_max = 0.0f;
     // rclc type: float angle_max
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float angle_increment;
+    float angle_increment = 0.0f;
     // rclc type: float angle_increment
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float time_increment;
+    float time_increment = 0.0f;
     // rclc type: float time_increment
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float scan_time;
+    float scan_time = 0.0f;
     // rclc type: float scan_time
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float range_min;
+    float range_min = 0.0f;
     // rclc type: float range_min
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float range_max;
+    float range_max = 0.0f;
     // rclc type: float range_max
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)

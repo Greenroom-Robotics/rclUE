@@ -21,7 +21,7 @@ struct RCLUE_API FROSFloat64
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float data;
+    double data = 0.0;
     // rclc type: double data
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

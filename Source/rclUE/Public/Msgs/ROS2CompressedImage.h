@@ -31,14 +31,14 @@ public:
     // rclc type: rosidl_runtime_c__String format
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    TArray<int> data;
+    TArray<uint8> data;
     // rclc type: rosidl_runtime_c__uint8__Sequence data
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)
     {
         header.SetFromROS2(in_ros_data.header);
         format = ROS2MsgToUE::From(in_ros_data.format);
-        data = ROS2MsgToUE::FromSequence<int>(in_ros_data.data);
+        data = ROS2MsgToUE::FromSequence<uint8>(in_ros_data.data);
     }
 
     void SetROS2(ros_msg_c_typename& out_ros_data) const

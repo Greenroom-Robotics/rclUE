@@ -28,11 +28,11 @@ public:
     // rclc type: std_msgs__msg__Header header
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int height;
+    int64 height = 0ul;
     // rclc type: uint32_t height
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int width;
+    int64 width = 0ul;
     // rclc type: uint32_t width
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -56,11 +56,11 @@ public:
     // rclc type: double p[12]
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int binning_x;
+    int64 binning_x = 0ul;
     // rclc type: uint32_t binning_x
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int binning_y;
+    int64 binning_y = 0ul;
     // rclc type: uint32_t binning_y
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)

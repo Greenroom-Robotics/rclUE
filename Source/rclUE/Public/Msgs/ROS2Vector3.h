@@ -21,15 +21,15 @@ struct RCLUE_API FROSVector3
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float x;
+    double x = 0.0;
     // rclc type: double x
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float y;
+    double y = 0.0;
     // rclc type: double y
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float z;
+    double z = 0.0;
     // rclc type: double z
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

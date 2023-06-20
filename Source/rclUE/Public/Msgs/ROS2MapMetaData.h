@@ -28,15 +28,15 @@ public:
     // rclc type: builtin_interfaces__msg__Time map_load_time
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float resolution;
+    float resolution = 0.0f;
     // rclc type: float resolution
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int width;
+    int64 width = 0ul;
     // rclc type: uint32_t width
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int height;
+    int64 height = 0ul;
     // rclc type: uint32_t height
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)

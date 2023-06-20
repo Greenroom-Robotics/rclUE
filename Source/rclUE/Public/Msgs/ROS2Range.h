@@ -14,7 +14,7 @@
 
 
 UENUM(BlueprintType)
-enum class UROSRadiationType : uint8
+enum class UROSRangeRadiationTypeEnum : uint8
 {
     ULTRASOUND = 0,
     INFRARED = 1
@@ -34,29 +34,29 @@ public:
     // rclc type: std_msgs__msg__Header header
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    UROSRadiationType radiation_type;
+    UROSRangeRadiationTypeEnum radiation_type = UROSRangeRadiationTypeEnum::ULTRASOUND;
     // rclc type: uint8_t radiation_type
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float field_of_view;
+    float field_of_view = 0.0f;
     // rclc type: float field_of_view
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float min_range;
+    float min_range = 0.0f;
     // rclc type: float min_range
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float max_range;
+    float max_range = 0.0f;
     // rclc type: float max_range
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float range;
+    float range = 0.0f;
     // rclc type: float range
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)
     {
         header.SetFromROS2(in_ros_data.header);
-        radiation_type = static_cast<UROSRadiationType>(in_ros_data.radiation_type);
+        radiation_type = static_cast<UROSRangeRadiationTypeEnum>(in_ros_data.radiation_type);
         field_of_view = in_ros_data.field_of_view;
         min_range = in_ros_data.min_range;
         max_range = in_ros_data.max_range;

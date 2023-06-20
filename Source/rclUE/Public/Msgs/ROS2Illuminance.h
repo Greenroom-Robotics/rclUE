@@ -27,11 +27,11 @@ public:
     // rclc type: std_msgs__msg__Header header
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float illuminance;
+    double illuminance = 0.0;
     // rclc type: double illuminance
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float variance;
+    double variance = 0.0;
     // rclc type: double variance
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

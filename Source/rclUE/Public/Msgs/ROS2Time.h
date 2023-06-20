@@ -21,11 +21,11 @@ struct RCLUE_API FROSTime
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int sec;
+    int32 sec = 0l;
     // rclc type: int32_t sec
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int nanosec;
+    int64 nanosec = 0ul;
     // rclc type: uint32_t nanosec
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

@@ -27,7 +27,7 @@ public:
     // rclc type: example_interfaces__msg__MultiArrayDimension__Sequence dim
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int data_offset;
+    int64 data_offset = 0ul;
     // rclc type: uint32_t data_offset
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

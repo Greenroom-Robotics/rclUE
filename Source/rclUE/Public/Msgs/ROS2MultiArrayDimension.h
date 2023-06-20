@@ -25,11 +25,11 @@ public:
     // rclc type: rosidl_runtime_c__String label
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int size;
+    int64 size = 0ul;
     // rclc type: uint32_t size
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int stride;
+    int64 stride = 0ul;
     // rclc type: uint32_t stride
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

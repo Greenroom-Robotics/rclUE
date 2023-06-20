@@ -27,13 +27,13 @@ public:
     // rclc type: example_interfaces__msg__MultiArrayLayout layout
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    TArray<int> data;
+    TArray<uint8> data;
     // rclc type: rosidl_runtime_c__uint8__Sequence data
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)
     {
         layout.SetFromROS2(in_ros_data.layout);
-        data = ROS2MsgToUE::FromSequence<int>(in_ros_data.data);
+        data = ROS2MsgToUE::FromSequence<uint8>(in_ros_data.data);
     }
 
     void SetROS2(ros_msg_c_typename& out_ros_data) const

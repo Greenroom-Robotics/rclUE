@@ -31,14 +31,14 @@ public:
     // rclc type: rosidl_runtime_c__float__Sequence axes
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    TArray<int> buttons;
+    TArray<int32> buttons;
     // rclc type: rosidl_runtime_c__int32__Sequence buttons
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)
     {
         header.SetFromROS2(in_ros_data.header);
         axes = ROS2MsgToUE::FromSequence<float>(in_ros_data.axes);
-        buttons = ROS2MsgToUE::FromSequence<int>(in_ros_data.buttons);
+        buttons = ROS2MsgToUE::FromSequence<int32>(in_ros_data.buttons);
     }
 
     void SetROS2(ros_msg_c_typename& out_ros_data) const

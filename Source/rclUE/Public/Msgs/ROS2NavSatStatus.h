@@ -23,11 +23,11 @@ struct RCLUE_API FROSNavSatStatus
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int status;
+    int status = 0;
     // rclc type: int8_t status
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int service;
+    int32 service = 0;
     // rclc type: uint16_t service
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

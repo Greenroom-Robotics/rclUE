@@ -14,7 +14,7 @@
 
 
 UENUM(BlueprintType)
-enum class UROSPowerSupplyTechnology : uint8
+enum class UROSBatteryStatePowerSupplyTechnologyEnum : uint8
 {
     POWER_SUPPLY_TECHNOLOGY_UNKNOWN = 0,
     POWER_SUPPLY_TECHNOLOGY_NIMH = 1,
@@ -26,7 +26,7 @@ enum class UROSPowerSupplyTechnology : uint8
 };
 
 UENUM(BlueprintType)
-enum class UROSPowerSupplyStatus : uint8
+enum class UROSBatteryStatePowerSupplyStatusEnum : uint8
 {
     POWER_SUPPLY_STATUS_UNKNOWN = 0,
     POWER_SUPPLY_STATUS_CHARGING = 1,
@@ -36,7 +36,7 @@ enum class UROSPowerSupplyStatus : uint8
 };
 
 UENUM(BlueprintType)
-enum class UROSPowerSupplyHealth : uint8
+enum class UROSBatteryStatePowerSupplyHealthEnum : uint8
 {
     POWER_SUPPLY_HEALTH_UNKNOWN = 0,
     POWER_SUPPLY_HEALTH_GOOD = 1,
@@ -63,47 +63,47 @@ public:
     // rclc type: std_msgs__msg__Header header
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float voltage;
+    float voltage = 0.0f;
     // rclc type: float voltage
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float temperature;
+    float temperature = 0.0f;
     // rclc type: float temperature
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float current;
+    float current = 0.0f;
     // rclc type: float current
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float charge;
+    float charge = 0.0f;
     // rclc type: float charge
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float capacity;
+    float capacity = 0.0f;
     // rclc type: float capacity
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float design_capacity;
+    float design_capacity = 0.0f;
     // rclc type: float design_capacity
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float percentage;
+    float percentage = 0.0f;
     // rclc type: float percentage
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    UROSPowerSupplyStatus power_supply_status;
+    UROSBatteryStatePowerSupplyStatusEnum power_supply_status = UROSBatteryStatePowerSupplyStatusEnum::POWER_SUPPLY_STATUS_UNKNOWN;
     // rclc type: uint8_t power_supply_status
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    UROSPowerSupplyHealth power_supply_health;
+    UROSBatteryStatePowerSupplyHealthEnum power_supply_health = UROSBatteryStatePowerSupplyHealthEnum::POWER_SUPPLY_HEALTH_UNKNOWN;
     // rclc type: uint8_t power_supply_health
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    UROSPowerSupplyTechnology power_supply_technology;
+    UROSBatteryStatePowerSupplyTechnologyEnum power_supply_technology = UROSBatteryStatePowerSupplyTechnologyEnum::POWER_SUPPLY_TECHNOLOGY_UNKNOWN;
     // rclc type: uint8_t power_supply_technology
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool present;
+    bool present = true;
     // rclc type: bool present
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -132,9 +132,9 @@ public:
         capacity = in_ros_data.capacity;
         design_capacity = in_ros_data.design_capacity;
         percentage = in_ros_data.percentage;
-        power_supply_status = static_cast<UROSPowerSupplyStatus>(in_ros_data.power_supply_status);
-        power_supply_health = static_cast<UROSPowerSupplyHealth>(in_ros_data.power_supply_health);
-        power_supply_technology = static_cast<UROSPowerSupplyTechnology>(in_ros_data.power_supply_technology);
+        power_supply_status = static_cast<UROSBatteryStatePowerSupplyStatusEnum>(in_ros_data.power_supply_status);
+        power_supply_health = static_cast<UROSBatteryStatePowerSupplyHealthEnum>(in_ros_data.power_supply_health);
+        power_supply_technology = static_cast<UROSBatteryStatePowerSupplyTechnologyEnum>(in_ros_data.power_supply_technology);
         present = in_ros_data.present;
         cell_voltage = ROS2MsgToUE::FromSequence<float>(in_ros_data.cell_voltage);
         cell_temperature = ROS2MsgToUE::FromSequence<float>(in_ros_data.cell_temperature);

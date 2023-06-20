@@ -21,7 +21,7 @@ struct RCLUE_API FROSBool
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool data;
+    bool data = true;
     // rclc type: bool data
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

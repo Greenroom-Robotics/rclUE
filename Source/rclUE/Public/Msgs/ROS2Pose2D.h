@@ -21,15 +21,15 @@ struct RCLUE_API FROSPose2D
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float x;
+    double x = 0.0;
     // rclc type: double x
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float y;
+    double y = 0.0;
     // rclc type: double y
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float theta;
+    double theta = 0.0;
     // rclc type: double theta
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

@@ -21,7 +21,7 @@ struct RCLUE_API FROSEmpty
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    int structure_needs_at_least_one_member;
+    uint8 structure_needs_at_least_one_member = 0;
     // rclc type: uint8_t structure_needs_at_least_one_member
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

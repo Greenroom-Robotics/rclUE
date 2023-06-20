@@ -21,19 +21,19 @@ struct RCLUE_API FROSColorRGBA
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float r;
+    float r = 0.0f;
     // rclc type: float r
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float g;
+    float g = 0.0f;
     // rclc type: float g
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float b;
+    float b = 0.0f;
     // rclc type: float b
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    float a;
+    float a = 0.0f;
     // rclc type: float a
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)

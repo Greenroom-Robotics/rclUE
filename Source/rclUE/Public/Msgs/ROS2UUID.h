@@ -21,7 +21,7 @@ struct RCLUE_API FROSUUID
 public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    TArray<int> uuid = ArrayInitialisers::IntArray<int>(16);
+    TArray<uint8> uuid = ArrayInitialisers::IntArray<uint8>(16);
     // rclc type: uint8_t uuid[16]
 
     void SetFromROS2(const ros_msg_c_typename& in_ros_data)
