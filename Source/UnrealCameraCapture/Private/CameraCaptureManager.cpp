@@ -7,8 +7,8 @@
 #include "ShowFlags.h"
 #include "Materials/Material.h"
 #include "RHICommandList.h"
-#include "ImageWrapper/Public/IImageWrapper.h"
-#include "ImageWrapper/Public/IImageWrapperModule.h"
+#include "IImageWrapper.h"
+#include "IImageWrapperModule.h"
 #include "ImageUtils.h"
 #include "Modules/ModuleManager.h"
 #include "Misc/FileHelper.h"
@@ -108,7 +108,7 @@ void UCameraCaptureManagerComponent::SaveCapture(FRenderRequestStruct* NextRende
 
 	if (VerboseLogging && !fileName.IsEmpty())
 	{
-		UE_LOG(LogCameraCaptureManager, Warning, TEXT("%f"), *fileName);
+		UE_LOG(LogCameraCaptureManager, Warning, TEXT("%s"), *fileName);
 	}
 }
 

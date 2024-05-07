@@ -3,6 +3,7 @@
 #include "ROS2Publisher.h"
 #include "ROS2Support.h"
 
+#include "Kismet/GameplayStatics.h"
 #include <Engine/World.h>
 #include <TimerManager.h>
 
