@@ -26,10 +26,9 @@ struct FRenderRequestStruct
 	FRenderRequestStruct()
 	{
 	}
-	
 };
 
-DECLARE_DYNAMIC_DELEGATE_OneParam(FCallbackDelegate, FRenderRequestStruct, RenderRequest);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FCallbackDelegate, FRenderRequestStruct&, RenderRequest);
 
 UCLASS(ClassGroup = (Custom), Blueprintable, meta = (BlueprintSpawnableComponent))
 class UNREALCAMERACAPTURE_API UCameraCaptureManagerComponent : public UActorComponent
@@ -41,14 +40,15 @@ public:
 	UCameraCaptureManagerComponent();
 	
 	// Color Capture Components
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
+	UPROPERTY()
 	USceneCaptureComponent2D* CaptureComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
 	int FrameWidth = 640;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
 	int FrameHeight = 480;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture", meta = (InlineEditConditionToggle))
 	bool bCallbackOnCapture = true;
 
@@ -65,14 +65,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture", Meta = (EditCondition="!bCallbackOnCapture"))
 	FString SubDirectoryName = "";
 
-
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
-	//ASceneCapture2D* SegmentationCapture = nullptr;
-
-	// PostProcessMaterial used for segmentation
-	UPROPERTY(EditAnywhere, Category="Capture")
-	UMaterial* PostProcessMaterial = nullptr;
-
 	UPROPERTY(EditAnywhere, Category="Logging")
 	bool VerboseLogging = false;
 
@@ -85,8 +77,6 @@ protected:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	void SetupCaptureComponent();
 
 	void SaveCapture(FRenderRequestStruct* NextRenderRequest);
 

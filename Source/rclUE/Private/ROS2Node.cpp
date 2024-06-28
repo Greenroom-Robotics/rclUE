@@ -454,7 +454,9 @@ void AROS2Node::SpinSome()
 
         for (auto& s : Subscribers)
         {
-            RCSOFTCHECK(rcl_wait_set_add_subscription(&wait_set, &s->rcl_subscription, nullptr));
+            if (rcl_subscription_is_valid(&s->rcl_subscription)) {
+                RCSOFTCHECK(rcl_wait_set_add_subscription(&wait_set, &s->rcl_subscription, nullptr));
+            }
         }
 
         for (auto& c : Clients)
