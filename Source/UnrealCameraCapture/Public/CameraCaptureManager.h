@@ -26,7 +26,6 @@ struct FRenderRequestStruct
 	FRenderRequestStruct()
 	{
 	}
-	
 };
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FCallbackDelegate, FRenderRequestStruct&, RenderRequest);
@@ -44,8 +43,6 @@ public:
 	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
 	UPROPERTY()
 	USceneCaptureComponent2D* CaptureComponent;
-	// TWeakObjectPtr<USceneCaptureComponent2D> CaptureComponent;
-	// TWeakObjectPtr<USceneCaptureComponent2D> CaptureComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
 	int FrameWidth = 640;
@@ -68,14 +65,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture", Meta = (EditCondition="!bCallbackOnCapture"))
 	FString SubDirectoryName = "";
 
-
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
-	//ASceneCapture2D* SegmentationCapture = nullptr;
-
-	// PostProcessMaterial used for segmentation
-	UPROPERTY(EditAnywhere, Category="Capture")
-	UMaterial* PostProcessMaterial = nullptr;
-
 	UPROPERTY(EditAnywhere, Category="Logging")
 	bool VerboseLogging = false;
 
@@ -88,8 +77,6 @@ protected:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-	void SetupCaptureComponent();
 
 	void SaveCapture(FRenderRequestStruct* NextRenderRequest);
 

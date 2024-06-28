@@ -24,6 +24,9 @@ public:
 	UPROPERTY(EditAnywhere, Category="Logging")
 	bool VerboseLogging = false;
 
+	// PostProcessMaterial used for segmentation
+	UPROPERTY(EditAnywhere, Category="Capture")
+	UMaterial* PostProcessMaterial = nullptr;
 protected:
 	virtual void BeginPlay() override;
 };

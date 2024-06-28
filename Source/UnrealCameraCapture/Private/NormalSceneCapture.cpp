@@ -46,14 +46,14 @@ void UNormalSceneCapture::BeginPlay()
 	ShowFlags.SetLensFlares(true);
 	
 	// Assign PostProcess Material if assigned
-	// if (PostProcessMaterial)
-	// {
-	// 	AddOrUpdateBlendable(PostProcessMaterial);
-	// }
-	// else
-	// {
-	// 	UE_LOG(LogCameraCaptureManager, Log, TEXT("No PostProcessMaterial is assigend"));
-	// }
+	if (PostProcessMaterial)
+	{
+		AddOrUpdateBlendable(PostProcessMaterial);
+	}
+	else
+	{
+		UE_LOG(LogNormalSceneCapture, Log, TEXT("No PostProcessMaterial is assigend"));
+	}
 	
 	TextureTarget = renderTarget2D;
 	TextureTarget->UpdateResourceImmediate(true);
