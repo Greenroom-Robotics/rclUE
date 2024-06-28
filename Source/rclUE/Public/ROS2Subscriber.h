@@ -6,7 +6,7 @@
 
 #include "ROS2Subscriber.generated.h"
 
-DECLARE_DYNAMIC_DELEGATE_OneParam(FIncomingMessageDelegate, UROS2GenericMsg*, IncomingMessage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FIncomingMessageDelegate, UROS2GenericMsg*, IncomingMessage);
 
 UCLASS(ClassGroup = (Custom), Blueprintable, meta = (BlueprintSpawnableComponent))
 class RCLUE_API UROS2Subscriber : public UActorComponent

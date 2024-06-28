@@ -5,6 +5,7 @@ class UMaterial;
 
 #include "CoreMinimal.h"
 #include "Containers/Queue.h"
+#include "RenderCommandFence.h"
 #include "CameraCaptureManager.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCameraCaptureManager, Log, All);
@@ -25,6 +26,7 @@ struct FRenderRequestStruct
 	FRenderRequestStruct()
 	{
 	}
+	
 };
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FCallbackDelegate, FRenderRequestStruct, RenderRequest);

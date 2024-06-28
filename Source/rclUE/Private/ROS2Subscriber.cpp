@@ -128,7 +128,7 @@ void UROS2Subscriber::Destroy()
 void UROS2Subscriber::HandleMessage(UROS2GenericMsg* Message)
 {
     if (IncomingMessageDelegate.IsBound()) {
-        IncomingMessageDelegate.Execute(Message);
+        IncomingMessageDelegate.Broadcast(Message);
     } else {
         IncomingMessage(Message);
     }
