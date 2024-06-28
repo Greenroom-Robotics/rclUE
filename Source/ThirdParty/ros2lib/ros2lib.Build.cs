@@ -5,6 +5,7 @@ using System.IO;
 using UnrealBuildTool;
 using System.Collections.Generic;
 using EpicGames.Core;
+using Microsoft.Extensions.Logging;
 
 public class ros2lib : ModuleRules
 {
@@ -120,11 +121,11 @@ public class ros2lib : ModuleRules
             var rosPaths = ROS2InstallPaths();
             if (rosPaths.Count == 0)
             {
-                Log.TraceError("No ROS2 workspaces were detected.");
+                Logger.LogError("No ROS2 workspaces were detected.");
             }
             foreach (string rosPath in rosPaths)
             {
-                Log.TraceInformation("Found ROS2 workspace: " + rosPath);
+                Logger.LogInformation("Found ROS2 workspace: " + rosPath);
 
                 foreach (var pkg in rosPackages)
                 {
