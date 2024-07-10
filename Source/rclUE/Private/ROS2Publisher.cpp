@@ -109,23 +109,28 @@ void UROS2Publisher::Init()
 
 void UROS2Publisher::Destroy()
 {
+    if (State != UROS2State::Initialized)
+    {
+        return;
+    }
     UE_LOG(LogROS2Publisher, Verbose, TEXT("Publisher Destroy Start (%s)"), *__LOG_INFO__);
     if (AsyncPublisherFuture.IsValid())
     {
         AsyncPublisherFuture.Wait();
     }
     
-    if (TopicMessage != nullptr)
+    if (IsValid(TopicMessage))
     {
         TopicMessage->Fini();
     }
 
-    if (ROSNode != nullptr)
+    if (IsValid(ROSNode))
     {
         UE_LOG(LogROS2Publisher, Verbose, TEXT("Publisher Destroy - rcl_publisher_fini (%s)"), *__LOG_INFO__);
         RCSOFTCHECK(rcl_publisher_fini(&RclPublisher, ROSNode->GetRCLNode()));
     }
     UE_LOG(LogROS2Publisher, Display, TEXT("[%s] Publisher destroyed"), *GetName());
+    State = UROS2State::Created;
 }
 
 void UROS2Publisher::UpdateAndPublishMessage()

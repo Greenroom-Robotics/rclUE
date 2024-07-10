@@ -33,12 +33,9 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FCallbackDelegate, FRenderRequestStruct&, Rend
 UCLASS(ClassGroup = (Custom), Blueprintable, meta = (BlueprintSpawnableComponent))
 class UNREALCAMERACAPTURE_API UCameraCaptureManagerComponent : public UActorComponent
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 
 public:
-	// Sets default values for this actor's properties
-	UCameraCaptureManagerComponent();
-	
 	// Color Capture Components
 	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
 	UPROPERTY()

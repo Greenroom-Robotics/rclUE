@@ -16,7 +16,8 @@
 DEFINE_LOG_CATEGORY(LogCameraCaptureManager);
 
 // Sets default values
-UCameraCaptureManagerComponent::UCameraCaptureManagerComponent()
+UCameraCaptureManagerComponent::UCameraCaptureManagerComponent(const FObjectInitializer & ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// Set this to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryComponentTick.bCanEverTick = true;

@@ -10,12 +10,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogNormalSceneCapture, Log, All);
 UCLASS(ClassGroup = (Custom), Blueprintable, meta = (BlueprintSpawnableComponent))
 class UNREALCAMERACAPTURE_API UNormalSceneCapture : public USceneCaptureComponent2D
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 
 public:
-	// Sets default values for this actor's properties
-	UNormalSceneCapture(const FObjectInitializer & ObjectInitializer);
-	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
 	int FrameWidth = 640;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")

@@ -12,7 +12,8 @@ UNormalSceneCapture::UNormalSceneCapture(const FObjectInitializer & ObjectInitia
 	: Super(ObjectInitializer)
 {
 	// Set this to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryComponentTick.bCanEverTick = true;
+	// PrimaryComponentTick.bCanEverTick = true;
+	TextureTarget = CreateDefaultSubobject<UTextureRenderTarget2D>(TEXT("TextureTarget"));
 }
 
 // Called when the game starts or when spawned
@@ -23,22 +24,22 @@ void UNormalSceneCapture::BeginPlay()
 	// TRACE_CPUPROFILER_EVENT_SCOPE_STR("UNormalSceneCapture::SetupCaptureComponent")
 
 	// Create RenderTargets
-	UTextureRenderTarget2D* renderTarget2D = NewObject<UTextureRenderTarget2D>(GetWorld());
+	// TextureTarget = NewObject<UTextureRenderTarget2D>(GetWorld());
 
-	renderTarget2D->TargetGamma = GEngine->GetDisplayGamma();
-	// renderTarget2D->TargetGamma = 1.2f;
+	TextureTarget->TargetGamma = GEngine->GetDisplayGamma();
+	// TextureTarget->TargetGamma = 1.2f;
 	//1.2f; // for Vulkan //GEngine->GetDisplayGamma(); // for DX11/12
 
-	renderTarget2D->ClearColor = FLinearColor::Black;
-	renderTarget2D->bAutoGenerateMips = false;
+	TextureTarget->ClearColor = FLinearColor::Black;
+	TextureTarget->bAutoGenerateMips = false;
 	
-	// renderTarget2D->InitCustomFormat(FrameWidth, FrameHeight, PF_B8G8R8A8, true);
+	// TextureTarget->InitCustomFormat(FrameWidth, FrameHeight, PF_B8G8R8A8, true);
 	// PF_B8G8R8A8 disables HDR which will boost storing to disk due to less image information
 
 	// note: RTF_RGBA8 means the pixels are stored in FColor structs which are BGRA ordered.
-	renderTarget2D->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8;
-	renderTarget2D->bGPUSharedFlag = true; // demand buffer on GPU
-	renderTarget2D->InitAutoFormat(FrameWidth, FrameHeight);
+	TextureTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8;
+	TextureTarget->bGPUSharedFlag = true; // demand buffer on GPU
+	TextureTarget->InitAutoFormat(FrameWidth, FrameHeight);
 	
 	// Set Camera Properties
 	CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
@@ -55,6 +56,5 @@ void UNormalSceneCapture::BeginPlay()
 		UE_LOG(LogNormalSceneCapture, Log, TEXT("No PostProcessMaterial is assigend"));
 	}
 	
-	TextureTarget = renderTarget2D;
 	TextureTarget->UpdateResourceImmediate(true);
 }

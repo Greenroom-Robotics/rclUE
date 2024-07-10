@@ -55,17 +55,6 @@ void AROS2Node::BringDown()
 
     Publishers.Empty();
 
-    TArray<UActorComponent*> PubComponents;
-    GetComponents(UROS2Publisher::StaticClass(), PubComponents, true);
-    for (auto& c : PubComponents)
-    {
-        UROS2Publisher* Pub = Cast<UROS2Publisher>(c);
-        if (Pub != nullptr)
-        {
-            Pub->Destroy();
-        }
-    }
-
     RCSOFTCHECK(rcl_wait_set_fini(&wait_set));
 
     UE_LOG(LogROS2Node, Verbose, TEXT("[%s] Bring Down - rcl_node_fini"), *GetName());
