@@ -118,7 +118,7 @@ void AROS2Node::Init()
         {
             OnNodeInitialised.Broadcast();
         }));
-        
+
     } else {
         UE_LOG(LogROS2Node, Error, TEXT("[%s] Initialised called on already initialised Node (%s)"), *GetName(), *__LOG_INFO__);
     }
@@ -293,6 +293,9 @@ void AROS2Node::AddActionServer(UROS2ActionServer* InActionServer)
 void AROS2Node::HandleSubscribers()
 {
     TRACE_CPUPROFILER_EVENT_SCOPE_STR("AROS2Node::HandleSubscribers")
+
+    TArray<UROS2Subscriber*> WaitSetSubscribers;
+
     for (auto i = 0; i < wait_set.size_of_subscriptions; i++)
     {
         if (wait_set.subscriptions[i])
@@ -302,34 +305,29 @@ void AROS2Node::HandleSubscribers()
             {
                 if (&s->rcl_subscription == currentSub)
                 {
-                    s->Ready = true;
+                    WaitSetSubscribers.Add(s);
                 }
             }
         }
     }
 
-    for (auto& s : Subscribers)
+    for (auto& s : WaitSetSubscribers)
     {
-        if (s->Ready)
-        {
-            void* data = s->TopicMessage->Get();
-            rmw_message_info_t messageInfo;
-            rcl_ret_t rc_take;
+        void* data = s->TopicMessage->Get();
+        rmw_message_info_t messageInfo;
+        rcl_ret_t rc_take;
 
-            {  // rcl_take may or may not be threadsafe. Comments in RCL indicate they don't even know...
-                FScopeLock lock(GetMutex());
-                rc_take = rcl_take(&s->rcl_subscription, data, &messageInfo, nullptr);
-            }
+        {  // rcl_take may or may not be threadsafe. Comments in RCL indicate they don't even know...
+            FScopeLock lock(GetMutex());
+            rc_take = rcl_take(&s->rcl_subscription, data, &messageInfo, nullptr);
+        }
 
-            if (rc_take == RCL_RET_OK) {
-                s->HandleMessage(s->TopicMessage);
-            } else if (rc_take == RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
-                UE_LOG(LogROS2Node, Warning, TEXT("[%s] Subscription take failed (%s)"), *GetName(), *__LOG_INFO__);
-            } else {
-                RCSOFTCHECK(rc_take);
-            }
-
-            s->Ready = false;
+        if (rc_take == RCL_RET_OK) {
+            s->HandleMessage(s->TopicMessage);
+        } else if (rc_take == RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
+            UE_LOG(LogROS2Node, Warning, TEXT("[%s] Subscription take failed (%s)"), *GetName(), *__LOG_INFO__);
+        } else {
+            RCSOFTCHECK(rc_take);
         }
     }
 }

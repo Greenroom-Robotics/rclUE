@@ -25,17 +25,6 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (EditCondition="bQosOverride"))
     FROS2QualityOfService Qos;
 
-    void Init();
-    void WhenNodeInits();
-    void BeginPlay() override;
-    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-    UFUNCTION(BlueprintCallable)
-    void UpdateAndPublishMessage();
-
-    UFUNCTION()
-    virtual void Destroy();
-
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString TopicName;
 
@@ -52,7 +41,7 @@ public:
     bool bPublish = true;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-    AROS2Node* ROSNode = nullptr;
+    AROS2Node* ROSNode;
 
     UPROPERTY(BlueprintReadOnly)
     UROS2State State = UROS2State::Created;
@@ -64,20 +53,36 @@ public:
     UPROPERTY(BlueprintReadOnly)
     UROS2GenericMsg* TopicMessage;
 
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+    FTimerHandle TimerHandle;
+
+    FCriticalSection Mutex;
+
+    const void* PublishedMsg = nullptr;
+
+    rcl_publisher_t RclPublisher;
+
+    UFUNCTION()
+    void Init();
+
+    UFUNCTION(BlueprintCallable)
+    void Reinitialise();
+
+    void WhenNodeInits();
+    void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+    UFUNCTION(BlueprintCallable)
+    void UpdateAndPublishMessage();
+
+    UFUNCTION()
+    virtual void Destroy();
+
     UFUNCTION(BlueprintCallable)
     void PublishMsg(UROS2GenericMsg* Message, bool async=false);
 
     UFUNCTION(BlueprintCallable)
     void Publish();
-
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    FTimerHandle TimerHandle;
-
-    FCriticalSection Mutex;
-    
-    const void* PublishedMsg = nullptr;
-
-    rcl_publisher_t RclPublisher;
 
 protected:
     UFUNCTION(BlueprintNativeEvent)

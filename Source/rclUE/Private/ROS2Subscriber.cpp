@@ -85,8 +85,6 @@ void UROS2Subscriber::Init()
         check(IsValid(TopicMessage));
         TopicMessage->Init();
 
-        Ready = false;
-
         FScopeLock lock(ROSNode->GetMutex());
 
         rcl_subscription = rcl_get_zero_initialized_subscription();
@@ -129,6 +127,12 @@ void UROS2Subscriber::Destroy()
     UE_LOG(LogROS2Subscriber, Display, TEXT("[%s] subscriber destroyed"), *GetName());
 
     State = UROS2State::Created;
+}
+
+void UROS2Subscriber::Reinitialise()
+{
+    Destroy();
+    Init();
 }
 
 void UROS2Subscriber::HandleMessage(UROS2GenericMsg* Message)

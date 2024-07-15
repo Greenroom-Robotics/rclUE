@@ -14,7 +14,7 @@ class RCLUE_API UROS2Subscriber : public UActorComponent
     GENERATED_BODY()
 
 public:
-    UROS2Subscriber(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());  
+    UROS2Subscriber(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (EditCondition="!bQosOverride"))
     UROS2QoS QosProfilePreset = UROS2QoS::Default;
@@ -24,15 +24,6 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (EditCondition="bQosOverride"))
     FROS2QualityOfService Qos;
-
-    void Init();
-    void WhenNodeInits();
-    void BeginPlay() override;
-    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-    void HandleMessage(UROS2GenericMsg* Message);
-
-    UFUNCTION()
-    virtual void Destroy();
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString TopicName;
@@ -49,8 +40,6 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool bAutoInitialise = false;
 
-    bool Ready;
-
     UPROPERTY(BlueprintReadOnly)
     UROS2GenericMsg* TopicMessage;
 
@@ -58,6 +47,18 @@ public:
 
     UPROPERTY(BlueprintReadWrite)
     FIncomingMessageDelegate IncomingMessageDelegate;
+
+    void Init();
+    void WhenNodeInits();
+    void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    void HandleMessage(UROS2GenericMsg* Message);
+
+    UFUNCTION()
+    virtual void Destroy();
+
+    UFUNCTION(BlueprintCallable)
+    void Reinitialise();
 
     UFUNCTION(BlueprintNativeEvent)
     void IncomingMessage(UROS2GenericMsg* Message);
