@@ -14,6 +14,8 @@ UNormalSceneCapture::UNormalSceneCapture(const FObjectInitializer & ObjectInitia
 	// Set this to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	// PrimaryComponentTick.bCanEverTick = true;
 	TextureTarget = CreateDefaultSubobject<UTextureRenderTarget2D>(TEXT("TextureTarget"));
+	// the below seems to be required otherwise it crashes the editor context browser
+	TextureTarget->InitAutoFormat(640, 480);
 }
 
 // Called when the game starts or when spawned
@@ -32,7 +34,7 @@ void UNormalSceneCapture::BeginPlay()
 
 	TextureTarget->ClearColor = FLinearColor::Black;
 	TextureTarget->bAutoGenerateMips = false;
-	
+
 	// TextureTarget->InitCustomFormat(FrameWidth, FrameHeight, PF_B8G8R8A8, true);
 	// PF_B8G8R8A8 disables HDR which will boost storing to disk due to less image information
 
@@ -40,12 +42,12 @@ void UNormalSceneCapture::BeginPlay()
 	TextureTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8;
 	TextureTarget->bGPUSharedFlag = true; // demand buffer on GPU
 	TextureTarget->InitAutoFormat(FrameWidth, FrameHeight);
-	
+
 	// Set Camera Properties
 	CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
 	ShowFlags.SetTemporalAA(true);
 	ShowFlags.SetLensFlares(true);
-	
+
 	// Assign PostProcess Material if assigned
 	if (PostProcessMaterial)
 	{
@@ -55,6 +57,6 @@ void UNormalSceneCapture::BeginPlay()
 	{
 		UE_LOG(LogNormalSceneCapture, Log, TEXT("No PostProcessMaterial is assigend"));
 	}
-	
+
 	TextureTarget->UpdateResourceImmediate(true);
 }
