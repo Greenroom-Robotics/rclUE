@@ -27,6 +27,8 @@ UCameraCaptureManagerComponent::UCameraCaptureManagerComponent(const FObjectInit
 void UCameraCaptureManagerComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	SetupCaptureComponent();
 }
 
 void UCameraCaptureManagerComponent::TickComponent(float DeltaTime,	enum ELevelTick TickType,
@@ -107,30 +109,77 @@ void UCameraCaptureManagerComponent::SaveCapture(FRenderRequestStruct* NextRende
 
 	if (VerboseLogging && !fileName.IsEmpty())
 	{
-		UE_LOG(LogCameraCaptureManager, Warning, TEXT("%s"), *fileName);
+		UE_LOG(LogCameraCaptureManager, Warning, TEXT("%f"), *fileName);
 	}
+}
+
+void UCameraCaptureManagerComponent::SetupCaptureComponent()
+{
+	TRACE_CPUPROFILER_EVENT_SCOPE_STR("UCameraCaptureManagerComponent::SetupCaptureComponent")
+	if (!IsValid(CaptureComponent))
+	{
+		UE_LOG(LogCameraCaptureManager, Error, TEXT("SetupCaptureComponent: CaptureComponent is not valid!"));
+		return;
+	}
+	// Create RenderTargets
+	UTextureRenderTarget2D* renderTarget2D = NewObject<UTextureRenderTarget2D>(GetWorld());
+
+	renderTarget2D->TargetGamma = GEngine->GetDisplayGamma();
+	// renderTarget2D->TargetGamma = 1.2f;
+	//1.2f; // for Vulkan //GEngine->GetDisplayGamma(); // for DX11/12
+
+	renderTarget2D->ClearColor = FLinearColor::Black;
+	renderTarget2D->bAutoGenerateMips = false;
+	
+	// renderTarget2D->InitCustomFormat(FrameWidth, FrameHeight, PF_B8G8R8A8, true);
+	// PF_B8G8R8A8 disables HDR which will boost storing to disk due to less image information
+
+	// note: RTF_RGBA8 means the pixels are stored in FColor structs which are BGRA ordered.
+	renderTarget2D->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8;
+	renderTarget2D->bGPUSharedFlag = true; // demand buffer on GPU
+	
+	// Set Camera Properties
+	CaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
+	CaptureComponent->ShowFlags.SetTemporalAA(true);
+	CaptureComponent->ShowFlags.SetLensFlares(true);
+	
+	// Assign PostProcess Material if assigned
+	if (PostProcessMaterial)
+	{
+		// check nullptr
+		CaptureComponent->AddOrUpdateBlendable(PostProcessMaterial);
+	}
+	else
+	{
+		UE_LOG(LogCameraCaptureManager, Log, TEXT("No PostProcessMaterial is assigend"));
+	}
+
+	renderTarget2D->InitAutoFormat(FrameWidth, FrameHeight);
+	CaptureComponent->TextureTarget = renderTarget2D;
+	renderTarget2D->UpdateResourceImmediate(true);
 }
 
 void UCameraCaptureManagerComponent::CaptureNonBlocking()
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE_STR("UCameraCaptureManagerComponent::CaptureNonBlocking")
-	// if (!CaptureComponent.IsValid())
 	if (!IsValid(CaptureComponent))
 	{
-		UE_LOG(LogCameraCaptureManager, Error, TEXT("CaptureColorNonBlocking: CaptureComponent is not valid!"));
+		UE_LOG(LogCameraCaptureManager, Error, TEXT("CaptureColorNonBlocking: CaptureComponent was not valid!"));
 		return;
 	}
 
 	if (!IsValid(CaptureComponent->TextureTarget))
 	{
-		UE_LOG(LogCameraCaptureManager, Error, TEXT("CaptureColorNonBlocking: TextureTarget is not valid!"));
+		UE_LOG(LogCameraCaptureManager, Error, TEXT("CaptureColorNonBlocking: TextureTarget was not valid!"));
 		return;
 	}
 
 	if (!RenderRequestQueue.IsEmpty()) // if we are already requesting a frame there is no point in adding another
 		return;
+	
+	CaptureComponent->TextureTarget->TargetGamma = GEngine->GetDisplayGamma();
 
-	// Get RenderContex
+	// Get RenderConterx
 	FTextureRenderTargetResource* renderTargetResource = CaptureComponent->TextureTarget->
 	                                                                       GameThread_GetRenderTargetResource();
 
