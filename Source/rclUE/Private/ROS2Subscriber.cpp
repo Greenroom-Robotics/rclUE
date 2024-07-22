@@ -15,19 +15,15 @@ UROS2Subscriber::UROS2Subscriber(const FObjectInitializer& ObjectInitializer)
 
 void UROS2Subscriber::BeginPlay()
 {
-    Super::BeginPlay();    
-    
+    Super::BeginPlay();
+
     if (bAutoInitialise)
     {
         if (!IsValid(ROSNode))
         {
-            AROS2Node* FirstROSNode = Cast<AROS2Node>(UGameplayStatics::GetActorOfClass(GetWorld(), AROS2Node::StaticClass()));
-            if (IsValid(FirstROSNode))
+            if (!FindAndSetROSNode())
             {
-                ROSNode = FirstROSNode;
-            } else
-            {
-                UE_LOG(LogROS2Subscriber, Error, TEXT("[%s] Cannot locate a ROSNode Actor to AddPublisher on. Initialisation failed."), *GetName());
+                UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
                 return;
             }
         }
@@ -39,6 +35,18 @@ void UROS2Subscriber::BeginPlay()
             WhenNodeInits();
         }
     }
+}
+
+bool UROS2Subscriber::FindAndSetROSNode()
+{
+    AROS2Node* FirstROSNode = Cast<AROS2Node>(UGameplayStatics::GetActorOfClass(GetWorld(), AROS2Node::StaticClass()));
+    if (IsValid(FirstROSNode))
+    {
+        ROSNode = FirstROSNode;
+        return true;
+    }
+    UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
+    return false;
 }
 
 void UROS2Subscriber::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -91,7 +99,7 @@ void UROS2Subscriber::Init()
 
         rcl_subscription_options_t sub_opt = rcl_subscription_get_default_options();
         sub_opt.allocator = ROSNode->ROSSubsystem()->GetRclUEAllocator();
-        
+
         if (bQosOverride) {
             sub_opt.qos = Qos.ToRMW();
         } else {
@@ -131,6 +139,15 @@ void UROS2Subscriber::Destroy()
 
 void UROS2Subscriber::Reinitialise()
 {
+    if (!IsValid(ROSNode))
+    {
+        if (!FindAndSetROSNode())
+        {
+            UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
+            return;
+        }
+        WhenNodeInits();
+    }
     Destroy();
     Init();
 }

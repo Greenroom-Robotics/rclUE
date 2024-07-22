@@ -62,12 +62,13 @@ public:
 
     rcl_publisher_t RclPublisher;
 
-    UFUNCTION()
+    UFUNCTION(BlueprintCallable)
     void Init();
 
     UFUNCTION(BlueprintCallable)
     void Reinitialise();
 
+    bool FindAndSetROSNode();
     void WhenNodeInits();
     void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -75,7 +76,7 @@ public:
     UFUNCTION(BlueprintCallable)
     void UpdateAndPublishMessage();
 
-    UFUNCTION()
+    UFUNCTION(BlueprintCallable)
     virtual void Destroy();
 
     UFUNCTION(BlueprintCallable)

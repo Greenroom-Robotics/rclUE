@@ -24,13 +24,9 @@ void UROS2Publisher::BeginPlay()
     {
         if (!IsValid(ROSNode))
         {
-            AROS2Node* FirstROSNode = Cast<AROS2Node>(UGameplayStatics::GetActorOfClass(GetWorld(), AROS2Node::StaticClass()));
-            if (IsValid(FirstROSNode))
+            if (!FindAndSetROSNode())
             {
-                ROSNode = FirstROSNode;
-            } else
-            {
-                UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor to AddPublisher on. Initialisation failed."), *GetName());
+                UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
                 return;
             }
         }
@@ -52,6 +48,18 @@ void UROS2Publisher::EndPlay(const EEndPlayReason::Type EndPlayReason)
         ROSNode->Publishers.Remove(this);
     }
     Super::EndPlay(EndPlayReason);
+}
+
+bool UROS2Publisher::FindAndSetROSNode()
+{
+    AROS2Node* FirstROSNode = Cast<AROS2Node>(UGameplayStatics::GetActorOfClass(GetWorld(), AROS2Node::StaticClass()));
+    if (IsValid(FirstROSNode))
+    {
+        ROSNode = FirstROSNode;
+        return true;
+    }
+    UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
+    return false;
 }
 
 void UROS2Publisher::Init()
@@ -135,6 +143,15 @@ void UROS2Publisher::Destroy()
 
 void UROS2Publisher::Reinitialise()
 {
+    if (!IsValid(ROSNode))
+    {
+        if (!FindAndSetROSNode())
+        {
+            UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
+            return;
+        }
+        WhenNodeInits();
+    }
     Destroy();
     Init();
 }

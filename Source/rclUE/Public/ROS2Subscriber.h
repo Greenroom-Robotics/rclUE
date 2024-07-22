@@ -48,7 +48,10 @@ public:
     UPROPERTY(BlueprintReadWrite)
     FIncomingMessageDelegate IncomingMessageDelegate;
 
+    UFUNCTION(BlueprintCallable)
     void Init();
+
+    bool FindAndSetROSNode();
     void WhenNodeInits();
     void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

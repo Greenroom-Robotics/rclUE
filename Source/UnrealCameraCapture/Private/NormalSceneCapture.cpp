@@ -13,21 +13,16 @@ UNormalSceneCapture::UNormalSceneCapture(const FObjectInitializer & ObjectInitia
 {
 	// Set this to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	// PrimaryComponentTick.bCanEverTick = true;
-	TextureTarget = CreateDefaultSubobject<UTextureRenderTarget2D>(TEXT("TextureTarget"));
-	// the below seems to be required otherwise it crashes the editor context browser
-	TextureTarget->InitAutoFormat(640, 480);
 }
 
 // Called when the game starts or when spawned
 void UNormalSceneCapture::BeginPlay()
 {
 	Super::BeginPlay();
-
+	TextureTarget = NewObject<UTextureRenderTarget2D>();
 	// TRACE_CPUPROFILER_EVENT_SCOPE_STR("UNormalSceneCapture::SetupCaptureComponent")
 
 	// Create RenderTargets
-	// TextureTarget = NewObject<UTextureRenderTarget2D>(GetWorld());
-
 	TextureTarget->TargetGamma = GEngine->GetDisplayGamma();
 	// TextureTarget->TargetGamma = 1.2f;
 	//1.2f; // for Vulkan //GEngine->GetDisplayGamma(); // for DX11/12
