@@ -30,7 +30,7 @@ inline void ResetSequence(ROSSequenceT & out)
 namespace ArrayInitialisers
 {
 
-  template <typename T>
+template <typename T>
 inline TArray<T> FloatArray(ssize_t elems)
 {
   TArray<T> a;
@@ -162,6 +162,17 @@ template <size_t N>
 inline TArray<uint8> FromArray(const uint8 (&in)[N])
 {
   TArray<uint8> out;
+  for (int i = 0; i < N; i++)
+  {
+    out.Add(in[i]);
+  }
+  return out;
+}
+
+template <size_t N>
+inline TArray<float> FromArray(const float (&in)[N])
+{
+  TArray<float> out;
   for (int i = 0; i < N; i++)
   {
     out.Add(in[i]);
@@ -330,13 +341,20 @@ inline void Set(const FQuat & in, geometry_msgs__msg__Quaternion & out)
   out.w = in.W;
 }
 
-  inline void Set(const FColor & in, std_msgs__msg__ColorRGBA & out)
-  {
-    out.r = in.R / 255.0;
-    out.g = in.G / 255.0;
-    out.b = in.B / 255.0;
-    out.a = in.A / 255.0;
-  }
+inline void Set(const FColor & in, std_msgs__msg__ColorRGBA & out)
+{
+  out.r = in.R / 255.0;
+  out.g = in.G / 255.0;
+  out.b = in.B / 255.0;
+  out.a = in.A / 255.0;
+}
+
+inline void Set(const FDateTime & in, builtin_interfaces__msg__Time & out)
+{
+  FTimespan delta = in - FDateTime(1970, 1, 1);
+  out.sec = delta.GetTotalSeconds();
+  out.nanosec = delta.GetFractionNano();
+}
 
 template <typename T, typename ROST>
 inline void SetStructSequence(const TArray<T> & in, ROST & out)
@@ -415,12 +433,5 @@ inline void SetSequencePointer(
 inline void Set(const FPoly & in, geometry_msgs__msg__Polygon & out)
 {
   SetSequence(in.Vertices, out.points);
-}
-
-inline void Set(const FDateTime & in, builtin_interfaces__msg__Time & out)
-{
-  FTimespan delta = in - FDateTime(1970, 1, 1);
-  out.sec = delta.GetTotalSeconds();
-  out.nanosec = delta.GetFractionNano();
 }
 }
