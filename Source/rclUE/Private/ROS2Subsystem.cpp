@@ -60,7 +60,7 @@ void UROS2Subsystem::Initialize(FSubsystemCollectionBase& Collection)
         .state = nullptr,
       };
 
-    rcutils_set_default_allocator(ue_allocator);
+    // rcutils_set_default_allocator(ue_allocator);
 }
 
 void UROS2Subsystem::Deinitialize()
