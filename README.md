@@ -9,12 +9,10 @@
 
 
 # Basic information
-
 ## Supported versions
-
-- Ubuntu 24.04
-- Unreal Engine 5.6 (This repo aims to track latest release version of the engine)
-- ROS2 Jazzy with patched `rcutils` (https://github.com/Greenroom-Robotics/rclue-rcutils)
+- Ubuntu Jammy
+- Unreal Engine 5.3 (This repo aims to track latest release version of the engine)
+- ROS2 Iron with patched `rcutils` (https://github.com/Greenroom-Robotics/rclue-rcutils)
 
 Windows is currently unsupported.
 
@@ -42,7 +40,7 @@ Follow Epic documentation on checking out and compiling Unreal Engine source cod
 UNREAL_HOME="/home/${USER}/UnrealEngine"
 PROJECTS_HOME="/home/${USER}/Documents/Unreal Projects"
 PROJECT_NAME="MyProject"
-ROS2_ENV="/opt/ros/jazzy"
+ROS2_ENV="/opt/ros/iron"
 EDITOR_COMMAND="${UNREAL_HOME}/Engine/Binaries/Linux/UnrealEditor"
 
 source ${ROS2_ENV}/setup.bash
