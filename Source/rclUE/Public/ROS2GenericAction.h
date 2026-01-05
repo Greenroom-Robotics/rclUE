@@ -49,3 +49,6 @@ private:
 	action_msgs__srv__CancelGoal_Request cancel_request;
 	action_msgs__srv__CancelGoal_Response cancel_response;
 };
+
+DECLARE_DYNAMIC_DELEGATE_OneParam(FActionCallback, UROS2GenericAction*, InAction /*Action*/);
+DECLARE_DELEGATE(FSimpleCallback);

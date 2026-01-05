@@ -98,7 +98,7 @@ void UROS2Subscriber::Init()
         rcl_subscription = rcl_get_zero_initialized_subscription();
 
         rcl_subscription_options_t sub_opt = rcl_subscription_get_default_options();
-        sub_opt.allocator = ROSNode->ROSSubsystem()->GetRclUEAllocator();
+        sub_opt.allocator = ROSNode->ROSSubsystem()->Allocator();
 
         if (bQosOverride) {
             sub_opt.qos = Qos.ToRMW();

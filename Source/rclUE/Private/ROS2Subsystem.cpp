@@ -49,9 +49,6 @@ void UROS2Subsystem::Initialize(FSubsystemCollectionBase& Collection)
     TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2Subsystem::Initialize")
     Super::Initialize(Collection);
 
-    Support = NewObject<UROS2Support>();
-    Support->Init();
-
     ue_allocator = {
         .allocate = RclUEAllocator::allocate,
         .deallocate = RclUEAllocator::deallocate,
@@ -61,6 +58,9 @@ void UROS2Subsystem::Initialize(FSubsystemCollectionBase& Collection)
       };
 
     rcutils_set_default_allocator(ue_allocator);
+    
+    Support = NewObject<UROS2Support>();
+    Support->Init();
 }
 
 void UROS2Subsystem::Deinitialize()

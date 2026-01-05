@@ -1,6 +1,6 @@
 // Copyright 2020-2021 Rapyuta Robotics Co., Ltd.
 
-#include "ROS2Node.h"
+#include "ROS2NodeSubsystem.h"
 
 #include "ROS2ActionClient.h"
 #include "ROS2ActionServer.h"
@@ -13,28 +13,20 @@
 #include "TimerManager.h"
 
 
-DEFINE_LOG_CATEGORY(LogROS2Node);
+DEFINE_LOG_CATEGORY(LogROS2NodeSubsystem);
 
-AROS2Node::AROS2Node()
+// UROS2NodeSubsystem::UROS2NodeSubsystem()
+// {
+//     // PrimaryActorTick.bCanEverTick = true;
+//     // PrimaryActorTick.bStartWithTickEnabled = true;
+//     //
+//     // RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+// }
+
+void UROS2NodeSubsystem::Deinitialize()
 {
-    PrimaryActorTick.bCanEverTick = true;
-    PrimaryActorTick.bStartWithTickEnabled = true;
-
-    RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-}
-
-void AROS2Node::BeginPlay()
-{
-    if (InitialiseOnBeginPlay)
-        Init();
-
-    Super::BeginPlay();
-}
-
-void AROS2Node::BringDown()
-{
-    TRACE_CPUPROFILER_EVENT_SCOPE_STR("AROS2Node::BringDown")
-    UE_LOG(LogROS2Node, Verbose, TEXT("[%s] Bring Down start"), *GetName());
+    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Deinitialize")
+    UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Bring Down start"), *GetName());
 
     for (auto& s : Subscribers)
     {
@@ -57,41 +49,51 @@ void AROS2Node::BringDown()
 
     RCSOFTCHECK(rcl_wait_set_fini(&wait_set));
 
-    UE_LOG(LogROS2Node, Verbose, TEXT("[%s] Bring Down - rcl_node_fini"), *GetName());
+    UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Bring Down - rcl_node_fini"), *GetName());
     RCSOFTCHECK(rcl_node_fini(GetRCLNode()));
-    UE_LOG(LogROS2Node, Display, TEXT("[%s] Node destroyed"), *GetName());
+    UE_LOG(LogROS2NodeSubsystem, Display, TEXT("[%s] Node destroyed"), *GetName());
 }
 
-void AROS2Node::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void UROS2NodeSubsystem::Tick(float DeltaTime)
 {
-    BringDown();
-    Super::EndPlay(EndPlayReason);
-}
-
-void AROS2Node::Tick(float DeltaTime)
-{
-    if (State != UROS2State::Initialized)
-    {
-        UE_LOG(LogROS2Node, Error, TEXT("[%s] Tick reached but not initialised. Destroying... %s"), *GetName(), *__LOG_INFO__);
-        Destroy();
-        return;
-    }
-
-    Super::Tick(DeltaTime);
-
     if (Subscribers.Num() > 0 || Clients.Num() > 0 || Services.Num() > 0)
     {
         SpinSome();
     }
 }
 
-// TODO Move the rclc stuff to Subsystem
-void AROS2Node::Init()
+bool UROS2NodeSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
-    TRACE_CPUPROFILER_EVENT_SCOPE_STR("AROS2Node::Init")
+    return true;    // TODO: If client/server, this should only be created on the server.
+}
+
+bool UROS2NodeSubsystem::IsTickable() const
+{
+    return true;
+}
+
+bool UROS2NodeSubsystem::IsTickableWhenPaused() const
+{
+    return false;
+}
+
+bool UROS2NodeSubsystem::IsTickableInEditor() const
+{
+    return false;
+}
+
+TStatId UROS2NodeSubsystem::GetStatId() const
+{
+    RETURN_QUICK_DECLARE_CYCLE_STAT(UROS2Subsystem, STATGROUP_Tickables);
+}
+
+// TODO Move the rclc stuff to Subsystem
+void UROS2NodeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Initialize")
     if (State == UROS2State::Created)
     {
-        UE_LOG(LogROS2Node, Verbose, TEXT("[%s] Initialising"), *GetName());
+        UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Initialising"), *GetName());
 
         Support = GetGameInstance()->GetSubsystem<UROS2Subsystem>()->GetSupport();
 
@@ -103,37 +105,37 @@ void AROS2Node::Init()
             rcl_node_options_t node_ops = rcl_node_get_default_options();
             node_ops.allocator = ROSSubsystem()->Allocator();
             RCSOFTCHECK(rclc_node_init_with_options(GetRCLNode(), TCHAR_TO_UTF8(*Name), TCHAR_TO_UTF8(*Namespace), &Support->Get(), &node_ops));
-            Support->RegisterNode(this);
+            // Support->RegisterNode(this);
 
-            UE_LOG(LogROS2Node, Display, TEXT("[%s] Node started with name '%s'"), *GetName(), *Name);
+            UE_LOG(LogROS2NodeSubsystem, Display, TEXT("[%s] Node started with name '%s'"), *GetName(), *Name);
         }
 
         State = UROS2State::Initialized;
-        UE_LOG(LogROS2Node, Verbose, TEXT("[%s] initialize complete."), *GetName());
+        UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] initialize complete."), *GetName());
 
         // Create an event informing the node is initialised and ready for subs/pubs
         // do it next Tick so any binding to the event in OnBeginPlay will work
-        GetWorld()->GetTimerManager().SetTimerForNextTick(
-            FTimerDelegate::CreateLambda([this]
-        {
-            OnNodeInitialised.Broadcast();
-        }));
+        // GetWorld()->GetTimerManager().SetTimerForNextTick(
+        //     FTimerDelegate::CreateLambda([this]
+        // {
+        //     OnNodeInitialised.Broadcast();
+        // }));
 
     } else {
-        UE_LOG(LogROS2Node, Error, TEXT("[%s] Initialised called on already initialised Node (%s)"), *GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Initialised called on already initialised Node (%s)"), *GetName(), *__LOG_INFO__);
     }
 }
 
-void AROS2Node::AddSubscriber(UROS2Subscriber* Subscriber)
+void UROS2NodeSubsystem::AddSubscriber(UROS2Subscriber* Subscriber)
 {
     if (!IsValid(Subscriber))
     {
-        UE_LOG(LogROS2Node, Error, TEXT("[%s] Invalid subscriber '%s' provided (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Invalid subscriber '%s' provided (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
         return;
     }
 
     if (State != UROS2State::Initialized) {
-        UE_LOG(LogROS2Node, Error, TEXT("[%s] Tried to add subscriber '%s' to uninitialised node (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Tried to add subscriber '%s' to uninitialised node (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
         return;
     }
 
@@ -143,17 +145,17 @@ void AROS2Node::AddSubscriber(UROS2Subscriber* Subscriber)
         {
             Subscriber->RegisterComponent();
         }
-        Subscriber->ROSNode = this;
+        // Subscriber->ROSNode = this;
         Subscribers.Add(Subscriber);
         Subscriber->Init();
     }
     else
     {
-        UE_LOG(LogROS2Node, Error, TEXT("[%s] Attempt to re-add Publisher %s (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Attempt to re-add Publisher %s (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
     }
 }
 
-void AROS2Node::RemoveSubscriber(UROS2Subscriber* Subscriber)
+void UROS2NodeSubsystem::RemoveSubscriber(UROS2Subscriber* Subscriber)
 {
     if (!IsValid(Subscriber))
         return;
@@ -161,7 +163,7 @@ void AROS2Node::RemoveSubscriber(UROS2Subscriber* Subscriber)
     Subscriber->Destroy();
 }
 
-void AROS2Node::AddServiceServer(const FString& ServiceName,
+void UROS2NodeSubsystem::AddServiceServer(const FString& ServiceName,
                                  const TSubclassOf<UROS2GenericSrv> SrvClass,
                                  const FServiceCallback& Callback)
 {
@@ -169,7 +171,7 @@ void AROS2Node::AddServiceServer(const FString& ServiceName,
 
     if (!Callback.IsBound())
     {
-        UE_LOG(LogROS2Node, Warning, TEXT("[%s] Callback is not set (%s)"), *GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] Callback is not set (%s)"), *GetName(), *__LOG_INFO__);
     }
 
     UROS2GenericSrv* Service = NewObject<UROS2GenericSrv>(this, SrvClass);
@@ -195,16 +197,16 @@ void AROS2Node::AddServiceServer(const FString& ServiceName,
     InvalidateWaitSet();
 }
 
-void AROS2Node::AddPublisher(UROS2Publisher* InPublisher)
+void UROS2NodeSubsystem::AddPublisher(UROS2Publisher* InPublisher)
 {
     if (!IsValid(InPublisher))
     {
-        UE_LOG(LogROS2Node, Error, TEXT("[%s] Invalid publisher '%s' provided (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Invalid publisher '%s' provided (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
         return;
     }
 
     if (State != UROS2State::Initialized) {
-        UE_LOG(LogROS2Node, Error, TEXT("[%s] Tried to add publisher '%s' to uninitialised node (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Tried to add publisher '%s' to uninitialised node (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
         return;
     }
 
@@ -214,17 +216,17 @@ void AROS2Node::AddPublisher(UROS2Publisher* InPublisher)
         {
             InPublisher->RegisterComponent();
         }
-        InPublisher->ROSNode = this;
+        // InPublisher->ROSNode = this;
         Publishers.Add(InPublisher);
         InPublisher->Init();
     }
     else
     {
-        UE_LOG(LogROS2Node, Error, TEXT("[%s] Attempt to re-add publisher '%s' (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Attempt to re-add publisher '%s' (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
     }
 }
 
-void AROS2Node::RemovePublisher(UROS2Publisher* Publisher)
+void UROS2NodeSubsystem::RemovePublisher(UROS2Publisher* Publisher)
 {
     if (!IsValid(Publisher))
         return;
@@ -232,67 +234,67 @@ void AROS2Node::RemovePublisher(UROS2Publisher* Publisher)
     Publisher->Destroy();
 }
 
-void AROS2Node::AddServiceClient(UROS2ServiceClient* InClient)
+void UROS2NodeSubsystem::AddServiceClient(UROS2ServiceClient* InClient)
 {
     check(IsValid(InClient));
 
     if (!InClient->RequestDelegate.IsBound())
     {
-        UE_LOG(LogROS2Node, Warning, TEXT("[%s] RequestDelegate is not set (%s)"), *GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] RequestDelegate is not set (%s)"), *GetName(), *__LOG_INFO__);
     }
 
     if (!InClient->AnswerDelegate.IsBound())
     {
-        UE_LOG(LogROS2Node, Warning, TEXT("[%s] AnswerDelegate is not set (%s)"), *GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] AnswerDelegate is not set (%s)"), *GetName(), *__LOG_INFO__);
     }
 
     if (false == Clients.Contains(InClient))
     {
-        InClient->ROSNode = this;
+        // InClient->ROSNode = this;
         InClient->Init(UROS2QoS::Services);
         Clients.Add(InClient);
     }
     else
     {
-        UE_LOG(LogROS2Node, Error, TEXT("[%s] ServiceClient is re-added (%s)"), *GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] ServiceClient is re-added (%s)"), *GetName(), *__LOG_INFO__);
     }
 }
 
-void AROS2Node::AddActionClient(UROS2ActionClient* InActionClient)
+void UROS2NodeSubsystem::AddActionClient(UROS2ActionClient* InActionClient)
 {
     check(IsValid(InActionClient));
 
     if (false == ActionClients.Contains(InActionClient))
     {
-        InActionClient->ROSNode = this;
+        // InActionClient->ROSNode = this;
         InActionClient->Init(UROS2QoS::Default);
         ActionClients.Add(InActionClient);
     }
     else
     {
-        UE_LOG(LogROS2Node, Error, TEXT("[%s] ActionClient is re-added (%s)"), *GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] ActionClient is re-added (%s)"), *GetName(), *__LOG_INFO__);
     }
 }
 
-void AROS2Node::AddActionServer(UROS2ActionServer* InActionServer)
+void UROS2NodeSubsystem::AddActionServer(UROS2ActionServer* InActionServer)
 {
     check(IsValid(InActionServer));
 
     if (false == ActionServers.Contains(InActionServer))
     {
-        InActionServer->ROSNode = this;
+        // InActionServer->ROSNode = this;
         InActionServer->Init(UROS2QoS::Default);
         ActionServers.Add(InActionServer);
     }
     else
     {
-        UE_LOG(LogROS2Node, Error, TEXT("[%s] ActionServer is re-added (%s)"), *GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] ActionServer is re-added (%s)"), *GetName(), *__LOG_INFO__);
     }
 }
 
-void AROS2Node::HandleSubscribers()
+void UROS2NodeSubsystem::HandleSubscribers()
 {
-    TRACE_CPUPROFILER_EVENT_SCOPE_STR("AROS2Node::HandleSubscribers")
+    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::HandleSubscribers")
 
     TArray<UROS2Subscriber*> WaitSetSubscribers;
 
@@ -325,16 +327,16 @@ void AROS2Node::HandleSubscribers()
         if (rc_take == RCL_RET_OK) {
             s->HandleMessage(s->TopicMessage);
         } else if (rc_take == RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
-            UE_LOG(LogROS2Node, Warning, TEXT("[%s] Subscription take failed (%s)"), *GetName(), *__LOG_INFO__);
+            UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] Subscription take failed (%s)"), *GetName(), *__LOG_INFO__);
         } else {
             RCSOFTCHECK(rc_take);
         }
     }
 }
 
-void AROS2Node::HandleServices()
+void UROS2NodeSubsystem::HandleServices()
 {
-    TRACE_CPUPROFILER_EVENT_SCOPE_STR("AROS2Node::HandleServices")
+    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::HandleServices")
     for (auto i = 0; i < wait_set.size_of_services; i++)
     {
         if (wait_set.services[i])
@@ -358,7 +360,7 @@ void AROS2Node::HandleServices()
             void* data = s.Service->GetRequest();
             RCSOFTCHECK(rcl_take_request_with_info(&s.rcl_service, &req_info, data));
 
-            UE_LOG(LogROS2Node, Log, TEXT("[%s] Executing Service (%s)"), *GetName(), *__LOG_INFO__);
+            UE_LOG(LogROS2NodeSubsystem, Log, TEXT("[%s] Executing Service (%s)"), *GetName(), *__LOG_INFO__);
 
             const FServiceCallback* SrvCallback = &s.Callback;
             SrvCallback->ExecuteIfBound(s.Service);
@@ -370,7 +372,7 @@ void AROS2Node::HandleServices()
     }
 }
 
-void AROS2Node::HandleClients()
+void UROS2NodeSubsystem::HandleClients()
 {
     for (auto i = 0; i < wait_set.size_of_clients; i++)
     {
@@ -395,7 +397,7 @@ void AROS2Node::HandleClients()
             void* data = c->Service->GetResponse();
             RCSOFTCHECK(rcl_take_response_with_info(&c->client, &req_info, data));
 
-            UE_LOG(LogROS2Node,
+            UE_LOG(LogROS2NodeSubsystem,
                    Log,
                    TEXT("[%s] Executing Answer Delegate for Service Client (%s)"),
                    *GetName(),
@@ -409,16 +411,16 @@ void AROS2Node::HandleClients()
     }
 }
 
-void AROS2Node::InvalidateWaitSet() {
+void UROS2NodeSubsystem::InvalidateWaitSet() {
     if (rcl_wait_set_is_valid(&wait_set))
     {
         RCSOFTCHECK(rcl_wait_set_fini(&wait_set));
     }
 }
 
-void AROS2Node::SpinSome()
+void UROS2NodeSubsystem::SpinSome()
 {
-    TRACE_CPUPROFILER_EVENT_SCOPE_STR("AROS2Node::SpinSome")
+    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::SpinSome")
     {
         FScopeLock lock(GetMutex());
 

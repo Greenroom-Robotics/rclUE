@@ -11,6 +11,9 @@
 #include "GameFramework/Actor.h"
 #include <Engine/GameInstance.h>
 
+#include "Service.h"
+// #include "Action.h"
+
 #include "ROS2Subsystem.h"
 #include "ROS2GenericAction.h"
 #include "ROS2GenericMsg.h"
@@ -25,33 +28,8 @@ class UROS2ActionServer;
 class UROS2ActionClient;
 
 // Reminder: functions bound to delegates must be UFUNCTION
-DECLARE_DYNAMIC_DELEGATE_OneParam(FServiceCallback, UROS2GenericSrv*, InService /*Service*/);
-DECLARE_DYNAMIC_DELEGATE_OneParam(FActionCallback, UROS2GenericAction*, InAction /*Action*/);
-DECLARE_DELEGATE(FSimpleCallback);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNodeInitialisedDelegate);
 
-USTRUCT(Blueprintable)
-struct RCLUE_API FService
-{
-    GENERATED_BODY()
-
-public:
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString ServiceName;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    TSubclassOf<UROS2GenericSrv> ServiceType;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    UROS2GenericSrv* Service = nullptr;
-
-    rcl_service_t rcl_service;
-
-    FServiceCallback Callback;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool Ready = false;
-};
 
 UCLASS(Blueprintable)
 class RCLUE_API AROS2Node : public AActor

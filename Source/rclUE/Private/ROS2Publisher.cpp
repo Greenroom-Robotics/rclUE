@@ -96,7 +96,7 @@ void UROS2Publisher::Init()
         RclPublisher = rcl_get_zero_initialized_publisher();
 
         rcl_publisher_options_t pub_opt = rcl_publisher_get_default_options();
-        pub_opt.allocator = ROSNode->ROSSubsystem()->GetRclUEAllocator();
+        pub_opt.allocator = ROSNode->ROSSubsystem()->Allocator();
 
         if (bQosOverride) {
             pub_opt.qos = Qos.ToRMW();

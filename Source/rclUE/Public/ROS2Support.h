@@ -27,7 +27,15 @@ public:
     UFUNCTION(BlueprintCallable)
     void Fini();
 
-    rclc_support_t& Get();
+    rclc_support_t& Get()
+    {
+        return support;
+    }
+    
+    rclc_support_t* GetPtr()
+    {
+        return &support;
+    }
 
     void RegisterNode(AROS2Node* node);
     TArray<AROS2Node*> Nodes;

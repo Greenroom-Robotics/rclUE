@@ -5,11 +5,6 @@
 
 DEFINE_LOG_CATEGORY(LogROS2Support);
 
-rclc_support_t& UROS2Support::Get()
-{
-    return support;
-}
-
 void UROS2Support::Init()
 {
     TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2Support::Init")
