@@ -8,6 +8,8 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FIncomingMessageDelegate, UROS2GenericMsg*, IncomingMessage);
 
+DECLARE_DYNAMIC_MULTICAST_SPARSE_DELEGATE_OneParam(FSubscriberMessageReceivedSignature, UROS2Subscriber, OnMessageReceived, UROS2GenericMsg*, IncomingMessage);
+
 UCLASS(ClassGroup = (Custom), Blueprintable, meta = (BlueprintSpawnableComponent))
 class RCLUE_API UROS2Subscriber : public UActorComponent
 {
@@ -31,34 +33,22 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TSubclassOf<UROS2GenericMsg> TopicType;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-    AROS2Node* ROSNode = nullptr;
-
     UPROPERTY(BlueprintReadOnly)
     UROS2State State = UROS2State::Created;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool bAutoInitialise = false;
 
     UPROPERTY(BlueprintReadOnly)
     UROS2GenericMsg* TopicMessage;
 
-    rcl_subscription_t rcl_subscription;
-
     UPROPERTY(BlueprintReadWrite)
     FIncomingMessageDelegate IncomingMessageDelegate;
 
-    UFUNCTION(BlueprintCallable)
-    void Init();
-
-    bool FindAndSetROSNode();
-    void WhenNodeInits();
-    void BeginPlay() override;
+    UPROPERTY(BlueprintAssignable)
+    FSubscriberMessageReceivedSignature OnMessageReceived;
+    
+    virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-    void HandleMessage(UROS2GenericMsg* Message);
 
-    UFUNCTION()
-    virtual void Destroy();
+    void HandleMessage(UROS2GenericMsg* Message);
 
     UFUNCTION(BlueprintCallable)
     void Reinitialise();
@@ -66,6 +56,11 @@ public:
     UFUNCTION(BlueprintNativeEvent)
     void IncomingMessage(UROS2GenericMsg* Message);
 
+    // TODO: this struct is accessed externally, which maybe it shouldn't be
+    rcl_subscription_t rcl_subscription;
 protected:
     virtual void IncomingMessage_Implementation(UROS2GenericMsg* Message);
+    
+    void Init();
+    void Destroy();
 };

@@ -10,6 +10,7 @@
 #include "ROS2Support.h"
 
 #include <Kismet/GameplayStatics.h>
+#include "Engine/World.h"
 #include "TimerManager.h"
 
 
@@ -38,7 +39,7 @@ void AROS2Node::BringDown()
 
     for (auto& s : Subscribers)
     {
-        RemoveSubscriber(s);
+        // RemoveSubscriber(s);
     }
 
     Subscribers.Empty();
@@ -50,7 +51,7 @@ void AROS2Node::BringDown()
 
     for (auto& p : Publishers)
     {
-        RemovePublisher(p);
+        // RemovePublisher(p);
     }
 
     Publishers.Empty();
@@ -143,22 +144,14 @@ void AROS2Node::AddSubscriber(UROS2Subscriber* Subscriber)
         {
             Subscriber->RegisterComponent();
         }
-        Subscriber->ROSNode = this;
+        // Subscriber->ROSNode = this;
         Subscribers.Add(Subscriber);
-        Subscriber->Init();
+        // Subscriber->Init();
     }
     else
     {
         UE_LOG(LogROS2Node, Error, TEXT("[%s] Attempt to re-add Publisher %s (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
     }
-}
-
-void AROS2Node::RemoveSubscriber(UROS2Subscriber* Subscriber)
-{
-    if (!IsValid(Subscriber))
-        return;
-
-    Subscriber->Destroy();
 }
 
 void AROS2Node::AddServiceServer(const FString& ServiceName,
@@ -214,22 +207,14 @@ void AROS2Node::AddPublisher(UROS2Publisher* InPublisher)
         {
             InPublisher->RegisterComponent();
         }
-        InPublisher->ROSNode = this;
+        // InPublisher->ROSNode = this;
         Publishers.Add(InPublisher);
-        InPublisher->Init();
+        // InPublisher->Init();
     }
     else
     {
         UE_LOG(LogROS2Node, Error, TEXT("[%s] Attempt to re-add publisher '%s' (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
     }
-}
-
-void AROS2Node::RemovePublisher(UROS2Publisher* Publisher)
-{
-    if (!IsValid(Publisher))
-        return;
-
-    Publisher->Destroy();
 }
 
 void AROS2Node::AddServiceClient(UROS2ServiceClient* InClient)

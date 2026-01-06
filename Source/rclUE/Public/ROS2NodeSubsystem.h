@@ -5,7 +5,6 @@
 #include "rclcUtilities.h"
 
 #include <CoreMinimal.h>
-#include <Subsystems/GameInstanceSubsystem.h>
 #include <Tickable.h>
 
 #include "Service.h"
@@ -26,9 +25,6 @@ class RCLUE_API UROS2NodeSubsystem : public UGameInstanceSubsystem, public FTick
     GENERATED_BODY()
 
 public:
-    // UFUNCTION(BlueprintCallable, Category = "ROS2")
-    // UROS2Support* GetSupport() const;
-
     virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
@@ -47,43 +43,28 @@ public:
    
     void InvalidateWaitSet();
 
-    UFUNCTION(BlueprintCallable)
     void AddSubscriber(UROS2Subscriber* Subscriber);
 
-    UFUNCTION(BlueprintCallable)
     void AddPublisher(UROS2Publisher* InPublisher);
 
-    UFUNCTION(BlueprintCallable)
-    void RemoveSubscriber(UROS2Subscriber* Subscriber);
-
-    UFUNCTION(BlueprintCallable)
-    void RemovePublisher(UROS2Publisher* Publisher);
-
-    UFUNCTION(BlueprintCallable)
     void AddServiceClient(UROS2ServiceClient* InClient);
 
-    UFUNCTION(BlueprintCallable)
     void AddServiceServer(const FString& ServiceName,
                           const TSubclassOf<UROS2GenericSrv> SrvClass,
                           const FServiceCallback& Callback);
 
-    UFUNCTION(BlueprintCallable)
     void AddActionClient(UROS2ActionClient* InActionClient);
 
-    UFUNCTION(BlueprintCallable)
     void AddActionServer(UROS2ActionServer* InActionServer);
 
     UPROPERTY(BlueprintReadOnly)
     UROS2State State = UROS2State::Created;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString Name = TEXT("node");
+    FString Name = TEXT("rclue_node");
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString Namespace = TEXT("");
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool InitialiseOnBeginPlay = true;
 
     // wait_set quantities - currently unused
     UPROPERTY(VisibleAnywhere, Category = "Diagnostics")
@@ -98,10 +79,7 @@ public:
     // UPROPERTY(BlueprintAssignable)
     // FOnNodeInitialisedDelegate OnNodeInitialised;
 
-    UROS2Subsystem* ROSSubsystem()
-    {
-        return GetGameInstance()->GetSubsystem<UROS2Subsystem>();
-    }
+    UROS2Subsystem* ROSSubsystem();
     
     FCriticalSection* GetMutex()
     {

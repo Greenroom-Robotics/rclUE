@@ -7,6 +7,7 @@ public class rclUE : ModuleRules
 	public rclUE(ReadOnlyTargetRules target) : base(target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		CppStandard = CppStandardVersion.Latest;
 		
 		PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Public"));
 		

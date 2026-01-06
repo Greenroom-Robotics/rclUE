@@ -3,7 +3,8 @@
 
 #include <Components/ActorComponent.h>
 #include <CoreMinimal.h>
-#include <ROS2Node.h>
+
+#include "rclcUtilities.h"
 
 #include "ROS2Publisher.generated.h"
 
@@ -40,14 +41,8 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool bPublish = true;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-    AROS2Node* ROSNode;
-
     UPROPERTY(BlueprintReadOnly)
     UROS2State State = UROS2State::Created;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool bAutoInitialise = false;
 
     // TODO refactor this class into two, split out ROS stuff from actorcomponent
     UPROPERTY(BlueprintReadOnly)
@@ -56,20 +51,9 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FTimerHandle TimerHandle;
 
-    FCriticalSection Mutex;
-
-    const void* PublishedMsg = nullptr;
-
-    rcl_publisher_t RclPublisher;
-
-    UFUNCTION(BlueprintCallable)
-    void Init();
-
     UFUNCTION(BlueprintCallable)
     void Reinitialise();
 
-    bool FindAndSetROSNode();
-    void WhenNodeInits();
     void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
@@ -95,5 +79,11 @@ protected:
     }
 
 private:
+    rcl_publisher_t RclPublisher;
+    FCriticalSection Mutex;
+    const void* PublishedMsg = nullptr;
+    
+    void Init();
+    
     TFuture<void> AsyncPublisherFuture;
 };

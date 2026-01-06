@@ -1,10 +1,13 @@
+#include "ROS2NodeSubsystem.h"
+#include "Engine/GameInstance.h"
+
 #include "ROS2ParameterSubsystem.h"
 
-#include "ROS2NodeSubsystem.h"
+#include "Async/Async.h"
 
 DEFINE_LOG_CATEGORY(LogROS2ParameterSubsystem);
 
-bool on_parameter_changed(const Parameter * old_param, const Parameter * new_param, [[maybe_unused]] void * context)
+bool on_parameter_changed(const Parameter * old_param, const Parameter * new_param, void * context)
 {
     UROS2ParameterSubsystem* ParamSubsystem = static_cast<UROS2ParameterSubsystem*>(context);
 
@@ -47,6 +50,9 @@ bool UROS2ParameterSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 
 void UROS2ParameterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
+    Collection.InitializeDependency<UROS2NodeSubsystem>();
+    Super::Initialize(Collection);
+    
     UROS2NodeSubsystem* Node = GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
     rclc_parameter_server_init_default(&param_server, Node->GetRCLNode());
     
@@ -56,8 +62,6 @@ void UROS2ParameterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
       &executor, &R2Subsystem->GetSupport()->Get().context, RCLC_EXECUTOR_PARAMETER_SERVER_HANDLES + 1,
       R2Subsystem->AllocatorPtr());
     rclc_executor_add_parameter_server_with_context(&executor, &param_server, on_parameter_changed, this);
-    
-    Super::Initialize(Collection);
 }
 
 void UROS2ParameterSubsystem::Deinitialize()
@@ -139,4 +143,50 @@ bool UROS2ParameterSubsystem::IsTickableInEditor() const
 TStatId UROS2ParameterSubsystem::GetStatId() const
 {
     RETURN_QUICK_DECLARE_CYCLE_STAT(UROS2ParameterSubsystem, STATGROUP_Tickables);
+}
+
+bool UROS2ParameterBlueprintLibrary::GetBooleanValue(const FROS2Parameter& Param)
+{
+    if (Param.Value.IsType<bool>())
+    {
+        return Param.Value.Get<bool>();
+    }
+    return false;
+}
+
+int64 UROS2ParameterBlueprintLibrary::GetIntegerValue(const FROS2Parameter& Param)
+{
+    if (Param.Value.IsType<int64>())
+    {
+        return Param.Value.Get<int64>();
+    }
+    return 0;
+}
+
+double UROS2ParameterBlueprintLibrary::GetDoubleValue(const FROS2Parameter& Param)
+{
+    if (Param.Value.IsType<double>())
+    {
+        return Param.Value.Get<double>();
+    }
+    return 0.0;
+}
+
+void UROS2ParameterBlueprintLibrary::SetBooleanValue(FROS2Parameter& Param, bool InValue)
+{
+    Param.Type = UParameterType::Boolean;
+    Param.Value.Set<bool>(InValue);
+}
+
+void UROS2ParameterBlueprintLibrary::SetIntegerValue(FROS2Parameter& Param, int64 InValue, FROS2Parameter& OutValue)
+{
+    Param.Type = UParameterType::Integer;
+    Param.Value.Set<int64>(InValue);
+    OutValue = Param;
+}
+
+void UROS2ParameterBlueprintLibrary::SetDoubleValue(FROS2Parameter& Param, double InValue)
+{
+    Param.Type = UParameterType::Double;
+    Param.Value.Set<double>(InValue);
 }

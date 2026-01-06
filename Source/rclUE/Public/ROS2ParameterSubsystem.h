@@ -6,21 +6,20 @@
 #include "rclc_parameter/rclc_parameter.h"
 
 #include <CoreMinimal.h>
-#include <Subsystems/GameInstanceSubsystem.h>
 #include <Tickable.h>
 #include <Misc/TVariant.h>
 
 #include "ROS2ParameterSubsystem.generated.h"
 
-UENUM()
-enum class UParameterType
+UENUM(BlueprintType)
+enum class UParameterType : uint8
 {
-    Boolean,
-    Integer,
-    Double
+    Boolean UMETA(DisplayName = "Boolean"),
+    Integer UMETA(DisplayName = "Integer"),
+    Double  UMETA(DisplayName = "Double")
 };
 
-static const TMap<UParameterType, rclc_parameter_type_t> ParameterType_LUT = {
+inline const TMap<UParameterType, rclc_parameter_type_t> ParameterType_LUT = {
     {UParameterType::Boolean, RCLC_PARAMETER_BOOL},
     {UParameterType::Integer, RCLC_PARAMETER_INT},
     {UParameterType::Double, RCLC_PARAMETER_DOUBLE}
@@ -35,7 +34,7 @@ struct RCLUE_API FROS2Parameter
     FString Name;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    UParameterType Type;
+    UParameterType Type = UParameterType::Boolean;
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString Description;
@@ -48,12 +47,72 @@ struct RCLUE_API FROS2Parameter
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool ReadOnly = false;
+    
+    // UFUNCTION(BlueprintCallable)
+    // bool GetBooleanValue() const
+    // {
+    //     return Value.Get<bool>();
+    // }
+    //
+    // UFUNCTION(BlueprintCallable)
+    // int64 GetIntegerValue() const
+    // {
+    //     return Value.Get<int64>();
+    // }
+    //
+    // UFUNCTION(BlueprintCallable)
+    // double GetDoubleValue() const
+    // {
+    //     return Value.Get<double>();
+    // }
+    //
+    // UFUNCTION(BlueprintCallable)
+    // void SetBooleanValue(bool InValue)
+    // {
+    //     Value.Set<bool>(InValue);
+    // }
+    //
+    // UFUNCTION(BlueprintCallable)
+    // void SetIntegerValue(int64 InValue)
+    // {
+    //     Value.Set<int64>(InValue);
+    // }
+    //
+    // UFUNCTION(BlueprintCallable)
+    // void SetDoubleValue(double InValue)
+    // {
+    //     Value.Set<double>(InValue);
+    // }
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnParameterAddedDelegate, FROS2Parameter&, AddedParameter);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnParameterChangedDelegate, FROS2Parameter&, ChangedParameter);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnParameterDeletedDelegate, FString, DeletedParameterName);
+UCLASS()
+class RCLUE_API UROS2ParameterBlueprintLibrary final : public UBlueprintFunctionLibrary
+{
+    GENERATED_BODY()
 
+public:
+    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
+    static bool GetBooleanValue(const FROS2Parameter& Param);
+
+    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
+    static int64 GetIntegerValue(const FROS2Parameter& Param);
+
+    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
+    static double GetDoubleValue(const FROS2Parameter& Param);
+
+    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
+    static void SetBooleanValue(UPARAM(ref) FROS2Parameter& Param, bool InValue);
+
+    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
+    static void SetIntegerValue(UPARAM(ref) FROS2Parameter& Param, int64 InValue, UPARAM(ref) FROS2Parameter& OutValue);
+
+    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
+    static void SetDoubleValue(UPARAM(ref) FROS2Parameter& Param, double InValue);
+};
+
+DECLARE_DYNAMIC_MULTICAST_SPARSE_DELEGATE_OneParam(FOnParameterAddedDelegate, UROS2ParameterSubsystem, OnParameterAdded, FROS2Parameter, AddedParameter);
+DECLARE_DYNAMIC_MULTICAST_SPARSE_DELEGATE_OneParam(FOnParameterChangedDelegate, UROS2ParameterSubsystem, OnParameterChanged, FROS2Parameter, ChangedParameter);
+DECLARE_DYNAMIC_MULTICAST_SPARSE_DELEGATE_OneParam(FOnParameterDeletedDelegate, UROS2ParameterSubsystem, OnParameterDeleted, FString, DeletedParameterName);
 
 UCLASS(Blueprintable)
 class RCLUE_API UROS2ParameterSubsystem : public UGameInstanceSubsystem, public FTickableGameObject
@@ -61,9 +120,6 @@ class RCLUE_API UROS2ParameterSubsystem : public UGameInstanceSubsystem, public 
     GENERATED_BODY()
 
 public:
-    // UFUNCTION(BlueprintCallable, Category = "ROS2")
-    // UROS2Support* GetSupport() const;
-
     virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
@@ -79,9 +135,6 @@ public:
     virtual bool IsTickableInEditor() const override;
     
     virtual TStatId GetStatId() const override;
-
-    // UPROPERTY(BlueprintAssignable)
-    // FOnNodeInitialisedDelegate OnNodeInitialised;
     
     UFUNCTION(BlueprintCallable)
     void AddParameter(const FROS2Parameter& Parameter);
@@ -101,12 +154,8 @@ public:
     FROS2Parameter* UpdateParameterInternal(const Parameter& NewParam);
 
 protected:
-    UPROPERTY()
-    FTimerHandle TimerHandle;
-    
     TMap<FString, FROS2Parameter> ParametersCache;
-    
-    
+
     rclc_executor_t executor;
     rclc_parameter_server_t param_server;
 };

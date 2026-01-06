@@ -5,7 +5,9 @@
 
 #include "Kismet/GameplayStatics.h"
 #include <Engine/World.h>
+#include "Engine/GameInstance.h"
 #include <TimerManager.h>
+#include "ROS2NodeSubsystem.h"
 
 #include "ROS2Subsystem.h"
 
@@ -20,46 +22,26 @@ UROS2Publisher::UROS2Publisher(const FObjectInitializer& ObjectInitializer)
 void UROS2Publisher::BeginPlay()
 {
     Super::BeginPlay();
-    if (bAutoInitialise)
+
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    if (!IsValid(NodeSubsystem))
     {
-        if (!IsValid(ROSNode))
-        {
-            if (!FindAndSetROSNode())
-            {
-                UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
-                return;
-            }
-        }
-        if (ROSNode->State != UROS2State::Initialized)
-        {
-            ROSNode->OnNodeInitialised.AddDynamic(this, &UROS2Publisher::WhenNodeInits);
-        } else
-        {
-            WhenNodeInits();
-        }
+        UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a NodeSubsystem Actor instance. Initialisation failed."), *GetName());
+        return;
     }
+    NodeSubsystem->AddPublisher(this);
+    Init();
 }
 
 void UROS2Publisher::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     Destroy();
-    if (IsValid(ROSNode))
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    if (IsValid(NodeSubsystem))
     {
-        ROSNode->Publishers.Remove(this);
+        NodeSubsystem->Publishers.Remove(this);
     }
     Super::EndPlay(EndPlayReason);
-}
-
-bool UROS2Publisher::FindAndSetROSNode()
-{
-    AROS2Node* FirstROSNode = Cast<AROS2Node>(UGameplayStatics::GetActorOfClass(GetWorld(), AROS2Node::StaticClass()));
-    if (IsValid(FirstROSNode))
-    {
-        ROSNode = FirstROSNode;
-        return true;
-    }
-    UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
-    return false;
 }
 
 void UROS2Publisher::Init()
@@ -67,13 +49,12 @@ void UROS2Publisher::Init()
     TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2Publisher::Init")
     UE_LOG(LogROS2Publisher, Verbose, TEXT("[%s] Initialising"), *GetName());
 
-    if (!IsValid(ROSNode)) {
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    if (!IsValid(NodeSubsystem)) {
         UE_LOG(LogROS2Publisher, Error, TEXT("[%s] ROS Node is invalid"), *GetName());
         return;
     }
-
-    check(ROSNode->State == UROS2State::Initialized);
-
+    
     if (State == UROS2State::Created)
     {
         if(TopicName.IsEmpty())
@@ -96,7 +77,7 @@ void UROS2Publisher::Init()
         RclPublisher = rcl_get_zero_initialized_publisher();
 
         rcl_publisher_options_t pub_opt = rcl_publisher_get_default_options();
-        pub_opt.allocator = ROSNode->ROSSubsystem()->Allocator();
+        pub_opt.allocator = NodeSubsystem->ROSSubsystem()->Allocator();
 
         if (bQosOverride) {
             pub_opt.qos = Qos.ToRMW();
@@ -104,7 +85,7 @@ void UROS2Publisher::Init()
             pub_opt.qos = QoSProfiles_LUT[QosProfilePreset];
         }
 
-        RCSOFTCHECK(rcl_publisher_init(&RclPublisher, ROSNode->GetRCLNode(), TopicMessage->GetTypeSupport(), TCHAR_TO_UTF8(*TopicName), &pub_opt));
+        RCSOFTCHECK(rcl_publisher_init(&RclPublisher, NodeSubsystem->GetRCLNode(), TopicMessage->GetTypeSupport(), TCHAR_TO_UTF8(*TopicName), &pub_opt));
 
         if (bPublishOnTimer) {
             GetWorld()->GetTimerManager().SetTimer(
@@ -131,11 +112,13 @@ void UROS2Publisher::Destroy()
     {
         TopicMessage->Fini();
     }
+    
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
 
-    if (IsValid(ROSNode))
+    if (IsValid(NodeSubsystem))
     {
         UE_LOG(LogROS2Publisher, Verbose, TEXT("Publisher Destroy - rcl_publisher_fini (%s)"), *__LOG_INFO__);
-        RCSOFTCHECK(rcl_publisher_fini(&RclPublisher, ROSNode->GetRCLNode()));
+        RCSOFTCHECK(rcl_publisher_fini(&RclPublisher, NodeSubsystem->GetRCLNode()));
     }
     UE_LOG(LogROS2Publisher, Display, TEXT("[%s] Publisher destroyed"), *GetName());
     State = UROS2State::Created;
@@ -143,15 +126,6 @@ void UROS2Publisher::Destroy()
 
 void UROS2Publisher::Reinitialise()
 {
-    if (!IsValid(ROSNode))
-    {
-        if (!FindAndSetROSNode())
-        {
-            UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
-            return;
-        }
-        WhenNodeInits();
-    }
     Destroy();
     Init();
 }
@@ -220,8 +194,4 @@ void UROS2Publisher::PublishMsg(UROS2GenericMsg* Message, bool async)
     }
 }
 
-void UROS2Publisher::WhenNodeInits()
-{
-    UE_LOG(LogROS2Publisher, Verbose, TEXT("[%s] Node is ready."), *GetName());
-    ROSNode->AddPublisher(this);
-}
+

@@ -9,9 +9,6 @@
 #include "ROS2ServiceClient.h"
 #include "ROS2Support.h"
 
-#include <Kismet/GameplayStatics.h>
-#include "TimerManager.h"
-
 
 DEFINE_LOG_CATEGORY(LogROS2NodeSubsystem);
 
@@ -23,6 +20,11 @@ DEFINE_LOG_CATEGORY(LogROS2NodeSubsystem);
 //     // RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 // }
 
+UROS2Subsystem* UROS2NodeSubsystem::ROSSubsystem()
+{
+    return GetGameInstance()->GetSubsystem<UROS2Subsystem>();
+}
+
 void UROS2NodeSubsystem::Deinitialize()
 {
     TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Deinitialize")
@@ -30,7 +32,8 @@ void UROS2NodeSubsystem::Deinitialize()
 
     for (auto& s : Subscribers)
     {
-        RemoveSubscriber(s);
+        // RemoveSubscriber(s);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Subscriber still alive during deinit"), *s->GetName());
     }
 
     Subscribers.Empty();
@@ -42,7 +45,8 @@ void UROS2NodeSubsystem::Deinitialize()
 
     for (auto& p : Publishers)
     {
-        RemovePublisher(p);
+        // RemovePublisher(p);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Publisher still alive during deinit"), *p->GetName());
     }
 
     Publishers.Empty();
@@ -90,40 +94,39 @@ TStatId UROS2NodeSubsystem::GetStatId() const
 // TODO Move the rclc stuff to Subsystem
 void UROS2NodeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
+    Collection.InitializeDependency<UROS2Subsystem>();
+    Super::Initialize(Collection);
+
     TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Initialize")
-    if (State == UROS2State::Created)
+
+    UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Initialising"), *GetName());
+
+    Support = GetGameInstance()->GetSubsystem<UROS2Subsystem>()->GetSupport();
+
+    FScopeLock lock(GetMutex());
+    if (!rcl_node_is_valid(GetRCLNode()))
     {
-        UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Initialising"), *GetName());
+        rcutils_reset_error();
 
-        Support = GetGameInstance()->GetSubsystem<UROS2Subsystem>()->GetSupport();
+        rcl_node_options_t node_ops = rcl_node_get_default_options();
+        node_ops.allocator = ROSSubsystem()->Allocator();
+        RCSOFTCHECK(rclc_node_init_with_options(GetRCLNode(), TCHAR_TO_UTF8(*Name), TCHAR_TO_UTF8(*Namespace), &Support->Get(), &node_ops));
+        // Support->RegisterNode(this);
 
-        FScopeLock lock(GetMutex());
-        if (!rcl_node_is_valid(GetRCLNode()))
-        {
-            rcutils_reset_error();
-
-            rcl_node_options_t node_ops = rcl_node_get_default_options();
-            node_ops.allocator = ROSSubsystem()->Allocator();
-            RCSOFTCHECK(rclc_node_init_with_options(GetRCLNode(), TCHAR_TO_UTF8(*Name), TCHAR_TO_UTF8(*Namespace), &Support->Get(), &node_ops));
-            // Support->RegisterNode(this);
-
-            UE_LOG(LogROS2NodeSubsystem, Display, TEXT("[%s] Node started with name '%s'"), *GetName(), *Name);
-        }
-
-        State = UROS2State::Initialized;
-        UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] initialize complete."), *GetName());
-
-        // Create an event informing the node is initialised and ready for subs/pubs
-        // do it next Tick so any binding to the event in OnBeginPlay will work
-        // GetWorld()->GetTimerManager().SetTimerForNextTick(
-        //     FTimerDelegate::CreateLambda([this]
-        // {
-        //     OnNodeInitialised.Broadcast();
-        // }));
-
-    } else {
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Initialised called on already initialised Node (%s)"), *GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Display, TEXT("[%s] Node started with name '%s'"), *GetName(), *Name);
     }
+
+    State = UROS2State::Initialized;
+    UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] initialize complete."), *GetName());
+
+    // Create an event informing the node is initialised and ready for subs/pubs
+    // do it next Tick so any binding to the event in OnBeginPlay will work
+    // GetWorld()->GetTimerManager().SetTimerForNextTick(
+    //     FTimerDelegate::CreateLambda([this]
+    // {
+    //     OnNodeInitialised.Broadcast();
+    // }));
+
 }
 
 void UROS2NodeSubsystem::AddSubscriber(UROS2Subscriber* Subscriber)
@@ -145,22 +148,12 @@ void UROS2NodeSubsystem::AddSubscriber(UROS2Subscriber* Subscriber)
         {
             Subscriber->RegisterComponent();
         }
-        // Subscriber->ROSNode = this;
         Subscribers.Add(Subscriber);
-        Subscriber->Init();
     }
     else
     {
         UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Attempt to re-add Publisher %s (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
     }
-}
-
-void UROS2NodeSubsystem::RemoveSubscriber(UROS2Subscriber* Subscriber)
-{
-    if (!IsValid(Subscriber))
-        return;
-
-    Subscriber->Destroy();
 }
 
 void UROS2NodeSubsystem::AddServiceServer(const FString& ServiceName,
@@ -216,22 +209,12 @@ void UROS2NodeSubsystem::AddPublisher(UROS2Publisher* InPublisher)
         {
             InPublisher->RegisterComponent();
         }
-        // InPublisher->ROSNode = this;
         Publishers.Add(InPublisher);
-        InPublisher->Init();
     }
     else
     {
         UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Attempt to re-add publisher '%s' (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
     }
-}
-
-void UROS2NodeSubsystem::RemovePublisher(UROS2Publisher* Publisher)
-{
-    if (!IsValid(Publisher))
-        return;
-
-    Publisher->Destroy();
 }
 
 void UROS2NodeSubsystem::AddServiceClient(UROS2ServiceClient* InClient)
