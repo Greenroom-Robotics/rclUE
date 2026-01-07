@@ -1,9 +1,11 @@
 #include "ROS2NodeSubsystem.h"
 #include "Engine/GameInstance.h"
 
+#include "Async/Async.h"
+#include <type_traits>
+
 #include "ROS2ParameterSubsystem.h"
 
-#include "Async/Async.h"
 
 DEFINE_LOG_CATEGORY(LogROS2ParameterSubsystem);
 
@@ -15,29 +17,47 @@ bool on_parameter_changed(const Parameter * old_param, const Parameter * new_par
         UE_LOG(LogROS2ParameterSubsystem, Error, TEXT("Callback error, both parameters are nullptr"));
         return false;
     }
+    
+    const TWeakObjectPtr<UROS2ParameterSubsystem> ParamSubsystemWeakPtr(ParamSubsystem);
 
     if (new_param != nullptr)
     {
         FString NewParamName = StringCast<TCHAR>(old_param->name.data).Get();
-        UE_LOG(LogROS2ParameterSubsystem, Verbose, TEXT("Parameter %s modified"), *NewParamName);
-        FROS2Parameter* Param = ParamSubsystem->UpdateParameterInternal(*new_param);
-
-        if (old_param == nullptr) {
-            UE_LOG(LogROS2ParameterSubsystem, Verbose, TEXT("Creating new parameter %s"), *NewParamName);
-            ParamSubsystem->OnParameterAdded.Broadcast(*Param);
-        }
+        UE_LOG(LogROS2ParameterSubsystem, Verbose, TEXT("Parameter '%s' modified"), *NewParamName);
+        const FROS2Parameter* UpdatedParamPtr = ParamSubsystem->UpdateParameterInternal(*new_param);
         
-        Async(EAsyncExecution::TaskGraph, [ParamSubsystemWeakPtr = TWeakObjectPtr<UROS2ParameterSubsystem>(ParamSubsystem), Param]()
+        const FROS2Parameter UpdatedParamValue = *UpdatedParamPtr;
+        const bool bIsCreate = (old_param == nullptr);
+
+        AsyncTask(ENamedThreads::GameThread, [ParamSubsystemWeakPtr, UpdatedParamValue, bIsCreate, NewParamName]()
         {
             if (!ParamSubsystemWeakPtr.IsValid())
+            {
                 return;
-            ParamSubsystemWeakPtr->OnParameterChanged.Broadcast(*Param);
+            }
+
+            auto* Subsystem = ParamSubsystemWeakPtr.Get();
+            if (bIsCreate)
+            {
+                UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Creating parameter '%s'"), *NewParamName);
+                Subsystem->OnParameterAdded.Broadcast(UpdatedParamValue);
+            }
+
+            Subsystem->OnParameterChanged.Broadcast(UpdatedParamValue);
         });
     } else
     {
         FString ParamName = StringCast<TCHAR>(old_param->name.data).Get();
-        UE_LOG(LogROS2ParameterSubsystem, Verbose, TEXT("Deleting parameter %s"), *ParamName);
-        ParamSubsystem->OnParameterDeleted.Broadcast(ParamName);
+        UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Deleting parameter '%s'"), *ParamName);
+        
+        AsyncTask(ENamedThreads::GameThread, [ParamSubsystemWeakPtr, ParamName]()
+        {
+            if (!ParamSubsystemWeakPtr.IsValid())
+            {
+                return;
+            }
+            ParamSubsystemWeakPtr->OnParameterDeleted.Broadcast(ParamName);
+        });
     }
     
     return true;
@@ -53,8 +73,8 @@ void UROS2ParameterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     Collection.InitializeDependency<UROS2NodeSubsystem>();
     Super::Initialize(Collection);
     
-    UROS2NodeSubsystem* Node = GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
-    rclc_parameter_server_init_default(&param_server, Node->GetRCLNode());
+    UROS2NodeSubsystem* NodeSubsystem = GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    rclc_parameter_server_init_default(&param_server, NodeSubsystem->GetRCLNode());
     
     UROS2Subsystem * R2Subsystem = GetGameInstance()->GetSubsystem<UROS2Subsystem>();
     
@@ -62,34 +82,70 @@ void UROS2ParameterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
       &executor, &R2Subsystem->GetSupport()->Get().context, RCLC_EXECUTOR_PARAMETER_SERVER_HANDLES + 1,
       R2Subsystem->AllocatorPtr());
     rclc_executor_add_parameter_server_with_context(&executor, &param_server, on_parameter_changed, this);
+    
+    UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Initialised parameter server on node '%s'"), *NodeSubsystem->Name);
 }
 
 void UROS2ParameterSubsystem::Deinitialize()
 {
-    UROS2NodeSubsystem* Node = GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    FScopeLock Lock(&Mutex);
+
+    UROS2NodeSubsystem* NodeSubsystem = GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
     rclc_executor_fini(&executor);
-    rclc_parameter_server_fini(&param_server, Node->GetRCLNode());
+    rclc_parameter_server_fini(&param_server, NodeSubsystem->GetRCLNode());
     
+    UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Destroyed parameter server on node '%s'"), *NodeSubsystem->Name);
     Super::Deinitialize();
 }
 
 void UROS2ParameterSubsystem::AddParameter(const FROS2Parameter& Parameter)
 {
+    FScopeLock Lock(&Mutex);
+    ParametersCache.Add(Parameter.Name, Parameter);
+    
     rclc_add_parameter(&param_server, StringCast<ANSICHAR>(*Parameter.Name).Get(), ParameterType_LUT[Parameter.Type]);
     rclc_add_parameter_description(&param_server, StringCast<ANSICHAR>(*Parameter.Name).Get(),
         StringCast<ANSICHAR>(*Parameter.Description).Get(), StringCast<ANSICHAR>(*Parameter.AdditionalConstraints).Get());
     rclc_set_parameter_read_only(&param_server, StringCast<ANSICHAR>(*Parameter.Name).Get(), Parameter.ReadOnly);
-    
-    ParametersCache.Add(Parameter.Name, Parameter);
+    UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Added parameter '%s'"), *Parameter.Name);
+
+    UpdateParameter(Parameter);
 }
 
-void UROS2ParameterSubsystem::DeleteParameter(const FString& ParameterName)
+void UROS2ParameterSubsystem::DeleteParameter(const FROS2Parameter& Parameter)
 {
+    DeleteParameterByName(Parameter.Name);
+}
+
+void UROS2ParameterSubsystem::DeleteParameterByName(const FString& ParameterName)
+{
+    FScopeLock Lock(&Mutex);
     rclc_delete_parameter(&param_server, StringCast<ANSICHAR>(*ParameterName).Get());
+    ParametersCache.Remove(ParameterName);
+}
+
+void UROS2ParameterSubsystem::UpdateParameter(const FROS2Parameter& Param)
+{
+    FScopeLock Lock(&Mutex);
+    switch (Param.Type) {
+    case UParameterType::Boolean:
+        rclc_parameter_set_bool(&param_server, StringCast<ANSICHAR>(*Param.Name).Get(), Param.Value.Get<bool>());
+        break;
+    case UParameterType::Integer:
+        rclc_parameter_set_int(&param_server, StringCast<ANSICHAR>(*Param.Name).Get(), Param.Value.Get<int64>());
+        break;
+    case UParameterType::Double:
+        rclc_parameter_set_double(&param_server, StringCast<ANSICHAR>(*Param.Name).Get(), Param.Value.Get<double>());
+        break;
+    default:
+        UE_LOG(LogROS2ParameterSubsystem, Error, TEXT("Unsupported param type in update of '%s'"), *Param.Name);
+        return;
+    }
 }
 
 FROS2Parameter* UROS2ParameterSubsystem::UpdateParameterInternal(const Parameter& NewParam)
 {
+    FScopeLock Lock(&Mutex);
     FString ParamName = StringCast<TCHAR>(NewParam.name.data).Get();
     if (ParametersCache.Contains(ParamName))
     {
@@ -145,7 +201,18 @@ TStatId UROS2ParameterSubsystem::GetStatId() const
     RETURN_QUICK_DECLARE_CYCLE_STAT(UROS2ParameterSubsystem, STATGROUP_Tickables);
 }
 
-bool UROS2ParameterBlueprintLibrary::GetBooleanValue(const FROS2Parameter& Param)
+FROS2Parameter UROS2ParameterSubsystem::GetParameterByName(const FString& Name)
+{
+    auto Param = ParametersCache.Find(Name);
+    
+    if (Param != nullptr)
+    {
+        return *Param;
+    }
+    return FROS2Parameter();
+}
+
+bool UROS2ParameterBlueprintLibrary::GetBooleanParameter(const FROS2Parameter& Param)
 {
     if (Param.Value.IsType<bool>())
     {
@@ -154,7 +221,7 @@ bool UROS2ParameterBlueprintLibrary::GetBooleanValue(const FROS2Parameter& Param
     return false;
 }
 
-int64 UROS2ParameterBlueprintLibrary::GetIntegerValue(const FROS2Parameter& Param)
+int64 UROS2ParameterBlueprintLibrary::GetIntegerParameter(const FROS2Parameter& Param)
 {
     if (Param.Value.IsType<int64>())
     {
@@ -163,7 +230,7 @@ int64 UROS2ParameterBlueprintLibrary::GetIntegerValue(const FROS2Parameter& Para
     return 0;
 }
 
-double UROS2ParameterBlueprintLibrary::GetDoubleValue(const FROS2Parameter& Param)
+double UROS2ParameterBlueprintLibrary::GetDoubleParameter(const FROS2Parameter& Param)
 {
     if (Param.Value.IsType<double>())
     {
@@ -172,21 +239,23 @@ double UROS2ParameterBlueprintLibrary::GetDoubleValue(const FROS2Parameter& Para
     return 0.0;
 }
 
-void UROS2ParameterBlueprintLibrary::SetBooleanValue(FROS2Parameter& Param, bool InValue)
+FROS2Parameter& UROS2ParameterBlueprintLibrary::SetBooleanParameter(FROS2Parameter& Param, bool InValue)
 {
     Param.Type = UParameterType::Boolean;
     Param.Value.Set<bool>(InValue);
+    return Param;
 }
 
-void UROS2ParameterBlueprintLibrary::SetIntegerValue(FROS2Parameter& Param, int64 InValue, FROS2Parameter& OutValue)
+FROS2Parameter& UROS2ParameterBlueprintLibrary::SetIntegerParameter(FROS2Parameter& Param, int64 InValue)
 {
     Param.Type = UParameterType::Integer;
     Param.Value.Set<int64>(InValue);
-    OutValue = Param;
+    return Param;
 }
 
-void UROS2ParameterBlueprintLibrary::SetDoubleValue(FROS2Parameter& Param, double InValue)
+FROS2Parameter& UROS2ParameterBlueprintLibrary::SetDoubleParameter(FROS2Parameter& Param, double InValue)
 {
     Param.Type = UParameterType::Double;
     Param.Value.Set<double>(InValue);
+    return Param;
 }

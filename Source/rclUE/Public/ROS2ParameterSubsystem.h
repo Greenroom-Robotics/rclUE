@@ -91,23 +91,23 @@ class RCLUE_API UROS2ParameterBlueprintLibrary final : public UBlueprintFunction
     GENERATED_BODY()
 
 public:
-    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
-    static bool GetBooleanValue(const FROS2Parameter& Param);
+    UFUNCTION(BlueprintPure, Category="ROS2|Parameters")
+    static bool GetBooleanParameter(const FROS2Parameter& Param);
 
-    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
-    static int64 GetIntegerValue(const FROS2Parameter& Param);
+    UFUNCTION(BlueprintPure, Category="ROS2|Parameters")
+    static int64 GetIntegerParameter(const FROS2Parameter& Param);
 
-    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
-    static double GetDoubleValue(const FROS2Parameter& Param);
+    UFUNCTION(BlueprintPure, Category="ROS2|Parameters")
+    static double GetDoubleParameter(const FROS2Parameter& Param);
 
-    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
-    static void SetBooleanValue(UPARAM(ref) FROS2Parameter& Param, bool InValue);
+    UFUNCTION(BlueprintPure, Category="ROS2|Parameters")
+    static FROS2Parameter& SetBooleanParameter(UPARAM(ref) FROS2Parameter& Param, bool InValue);
 
-    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
-    static void SetIntegerValue(UPARAM(ref) FROS2Parameter& Param, int64 InValue, UPARAM(ref) FROS2Parameter& OutValue);
+    UFUNCTION(BlueprintPure, Category="ROS2|Parameters")
+    static FROS2Parameter& SetIntegerParameter(UPARAM(ref) FROS2Parameter& Param, int64 InValue);
 
-    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
-    static void SetDoubleValue(UPARAM(ref) FROS2Parameter& Param, double InValue);
+    UFUNCTION(BlueprintPure, Category="ROS2|Parameters")
+    static FROS2Parameter& SetDoubleParameter(UPARAM(ref) FROS2Parameter& Param, double InValue);
 };
 
 DECLARE_DYNAMIC_MULTICAST_SPARSE_DELEGATE_OneParam(FOnParameterAddedDelegate, UROS2ParameterSubsystem, OnParameterAdded, FROS2Parameter, AddedParameter);
@@ -137,11 +137,17 @@ public:
     virtual TStatId GetStatId() const override;
     
     UFUNCTION(BlueprintCallable)
+    FROS2Parameter GetParameterByName(const FString& Name);
+    
+    UFUNCTION(BlueprintCallable)
     void AddParameter(const FROS2Parameter& Parameter);
     
     UFUNCTION(BlueprintCallable)
-    void DeleteParameter(const FString& ParameterName);
+    void DeleteParameter(const FROS2Parameter& Parameter);
 
+    UFUNCTION(BlueprintCallable)
+    void DeleteParameterByName(const FString& ParameterName);
+    
     UPROPERTY(BlueprintAssignable)
     FOnParameterAddedDelegate OnParameterAdded;
 
@@ -152,9 +158,13 @@ public:
     FOnParameterDeletedDelegate OnParameterDeleted;
 
     FROS2Parameter* UpdateParameterInternal(const Parameter& NewParam);
+    
+    UFUNCTION(BlueprintCallable)
+    void UpdateParameter(const FROS2Parameter& Param);
 
 protected:
     TMap<FString, FROS2Parameter> ParametersCache;
+    FCriticalSection Mutex;
 
     rclc_executor_t executor;
     rclc_parameter_server_t param_server;

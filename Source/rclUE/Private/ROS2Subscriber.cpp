@@ -89,7 +89,7 @@ void UROS2Subscriber::Init()
             sub_opt.qos = QoSProfiles_LUT[QosProfilePreset];
         }
 
-        UE_LOG(LogROS2Subscriber, Display, TEXT("[%s] Subscribing to topic %s"), *GetName(), *TopicName);
+        UE_LOG(LogROS2Subscriber, Display, TEXT("[%s] Subscribing to topic '%s'"), *GetName(), *TopicName);
         RCSOFTCHECK(rcl_subscription_init(&rcl_subscription, NodeSubsystem->GetRCLNode(), TopicMessage->GetTypeSupport(), TCHAR_TO_UTF8(*TopicName), &sub_opt));
 
         NodeSubsystem->InvalidateWaitSet();

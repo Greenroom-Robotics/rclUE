@@ -9,6 +9,7 @@
 #include "ROS2ServiceClient.h"
 #include "ROS2Support.h"
 
+#include "Misc/ConfigCacheIni.h"
 
 DEFINE_LOG_CATEGORY(LogROS2NodeSubsystem);
 
@@ -23,6 +24,53 @@ DEFINE_LOG_CATEGORY(LogROS2NodeSubsystem);
 UROS2Subsystem* UROS2NodeSubsystem::ROSSubsystem()
 {
     return GetGameInstance()->GetSubsystem<UROS2Subsystem>();
+}
+
+// TODO Move the rclc stuff to Subsystem
+void UROS2NodeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+    Collection.InitializeDependency<UROS2Subsystem>();
+    Super::Initialize(Collection);
+
+    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Initialize")
+
+    static const TCHAR* Section = TEXT("/Script/rclUE");
+
+    // Read from Game ini (typical for gameplay-facing settings).
+    FString ConfigName;
+    FString ConfigNamespace;
+    GConfig->GetString(Section, TEXT("Name"), ConfigName, GGameIni);
+    GConfig->GetString(Section, TEXT("Namespace"), ConfigNamespace, GGameIni);
+
+    ConfigName = ConfigName.TrimStartAndEnd();
+    ConfigNamespace = ConfigNamespace.TrimStartAndEnd();
+    
+    if (!ConfigName.IsEmpty())
+    {
+        Name = ConfigName;
+    }
+    
+    if (!ConfigNamespace.IsEmpty())
+    {
+        Namespace = ConfigNamespace;
+    }
+    
+    Support = GetGameInstance()->GetSubsystem<UROS2Subsystem>()->GetSupport();
+
+    FScopeLock lock(GetMutex());
+    if (!rcl_node_is_valid(GetRCLNode()))
+    {
+        rcutils_reset_error();
+
+        rcl_node_options_t node_ops = rcl_node_get_default_options();
+        node_ops.allocator = ROSSubsystem()->Allocator();
+        RCSOFTCHECK(rclc_node_init_with_options(GetRCLNode(), StringCast<ANSICHAR>(*Name).Get(),
+            StringCast<ANSICHAR>(*Namespace).Get(), &Support->Get(), &node_ops));
+
+        UE_LOG(LogROS2NodeSubsystem, Display, TEXT("Node started with name '%s'"), *Name);
+    }
+
+    State = UROS2State::Initialized;
 }
 
 void UROS2NodeSubsystem::Deinitialize()
@@ -56,6 +104,8 @@ void UROS2NodeSubsystem::Deinitialize()
     UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Bring Down - rcl_node_fini"), *GetName());
     RCSOFTCHECK(rcl_node_fini(GetRCLNode()));
     UE_LOG(LogROS2NodeSubsystem, Display, TEXT("[%s] Node destroyed"), *GetName());
+    
+    Super::Deinitialize();
 }
 
 void UROS2NodeSubsystem::Tick(float DeltaTime)
@@ -89,44 +139,6 @@ bool UROS2NodeSubsystem::IsTickableInEditor() const
 TStatId UROS2NodeSubsystem::GetStatId() const
 {
     RETURN_QUICK_DECLARE_CYCLE_STAT(UROS2Subsystem, STATGROUP_Tickables);
-}
-
-// TODO Move the rclc stuff to Subsystem
-void UROS2NodeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
-{
-    Collection.InitializeDependency<UROS2Subsystem>();
-    Super::Initialize(Collection);
-
-    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Initialize")
-
-    UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Initialising"), *GetName());
-
-    Support = GetGameInstance()->GetSubsystem<UROS2Subsystem>()->GetSupport();
-
-    FScopeLock lock(GetMutex());
-    if (!rcl_node_is_valid(GetRCLNode()))
-    {
-        rcutils_reset_error();
-
-        rcl_node_options_t node_ops = rcl_node_get_default_options();
-        node_ops.allocator = ROSSubsystem()->Allocator();
-        RCSOFTCHECK(rclc_node_init_with_options(GetRCLNode(), TCHAR_TO_UTF8(*Name), TCHAR_TO_UTF8(*Namespace), &Support->Get(), &node_ops));
-        // Support->RegisterNode(this);
-
-        UE_LOG(LogROS2NodeSubsystem, Display, TEXT("[%s] Node started with name '%s'"), *GetName(), *Name);
-    }
-
-    State = UROS2State::Initialized;
-    UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] initialize complete."), *GetName());
-
-    // Create an event informing the node is initialised and ready for subs/pubs
-    // do it next Tick so any binding to the event in OnBeginPlay will work
-    // GetWorld()->GetTimerManager().SetTimerForNextTick(
-    //     FTimerDelegate::CreateLambda([this]
-    // {
-    //     OnNodeInitialised.Broadcast();
-    // }));
-
 }
 
 void UROS2NodeSubsystem::AddSubscriber(UROS2Subscriber* Subscriber)
@@ -183,7 +195,7 @@ void UROS2NodeSubsystem::AddServiceServer(const FString& ServiceName,
     const rosidl_service_type_support_t* type_support = Service->GetTypeSupport();
     rcl_service_options_t srv_opt = rcl_service_get_default_options();
     srv_opt.allocator = ROSSubsystem()->Allocator();
-    RCSOFTCHECK(rcl_service_init(&NewSrv.rcl_service, GetRCLNode(), type_support, TCHAR_TO_UTF8(*ServiceName), &srv_opt));
+    RCSOFTCHECK(rcl_service_init(&NewSrv.rcl_service, GetRCLNode(), type_support, StringCast<ANSICHAR>(*ServiceName).Get(), &srv_opt));
 
     Services.Emplace(MoveTemp(NewSrv));
 
