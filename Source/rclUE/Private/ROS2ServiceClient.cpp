@@ -1,5 +1,9 @@
 // Copyright 2020-2021 Rapyuta Robotics Co., Ltd.
 
+#include "Engine/World.h"
+#include "Engine/GameInstance.h"
+
+#include "ROS2NodeSubsystem.h"
 #include "ROS2ServiceClient.h"
 
 DEFINE_LOG_CATEGORY(LogROS2Service);
@@ -12,8 +16,6 @@ UROS2ServiceClient::UROS2ServiceClient()
 
 void UROS2ServiceClient::Init(UROS2QoS QoS)
 {
-    check(ROSNode != nullptr);
-    check(ROSNode->State == UROS2State::Initialized);
     if (State == UROS2State::Created)
     {
         InitializeService();
@@ -27,7 +29,8 @@ void UROS2ServiceClient::Init(UROS2QoS QoS)
 
         client_opt.qos = QoSProfiles_LUT[QoS];
 
-        RCSOFTCHECK(rcl_client_init(&client, ROSNode->GetRCLNode(), srv_type_support, TCHAR_TO_UTF8(*ServiceName), &client_opt));
+        UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+        RCSOFTCHECK(rcl_client_init(&client, NodeSubsystem->GetRCLNode(), srv_type_support, TCHAR_TO_UTF8(*ServiceName), &client_opt));
 
         State = UROS2State::Initialized;
     }
@@ -54,18 +57,16 @@ void UROS2ServiceClient::Destroy()
         Service->Fini();
     }
 
-    if (ROSNode != nullptr)
-    {
-        UE_LOG(LogROS2Service, Log, TEXT("Client Destroy - rcl_client_fini (%s)"), *__LOG_INFO__);
-        RCSOFTCHECK(rcl_client_fini(&client, ROSNode->GetRCLNode()));
-    }
+    UE_LOG(LogROS2Service, Log, TEXT("Client Destroy - rcl_client_fini (%s)"), *__LOG_INFO__);
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    RCSOFTCHECK(rcl_client_fini(&client, NodeSubsystem->GetRCLNode()));
+
 }
 
 void UROS2ServiceClient::UpdateAndSendRequest()
 {
     UE_LOG(LogROS2Service, Log, TEXT("%s"), *__LOG_INFO__);
     check(State == UROS2State::Initialized);
-    check(IsValid(ROSNode));
 
     RequestDelegate.ExecuteIfBound(Service);
     SendRequest();
@@ -75,7 +76,6 @@ void UROS2ServiceClient::SendRequest()
 {
     UE_LOG(LogROS2Service, Log, TEXT("%s"), *__LOG_INFO__);
     check(State == UROS2State::Initialized);
-    check(ROSNode != nullptr);
 
     req = Service->GetRequest();
 

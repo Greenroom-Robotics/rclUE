@@ -11,7 +11,6 @@
 
 // rclUE
 #include "ROS2GenericMsg.h"
-#include "ROS2Node.h"
 #include "ROS2GenericSrv.h"
 
 #include "ROS2ServiceClient.generated.h"
@@ -52,8 +51,6 @@ public:
     // used to receive the answer
     FServiceClientCallback AnswerDelegate;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    AROS2Node* ROSNode;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UROS2State State = UROS2State::Created;

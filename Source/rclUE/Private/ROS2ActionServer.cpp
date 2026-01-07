@@ -1,5 +1,10 @@
 // Copyright 2020-2021 Rapyuta Robotics Co., Ltd.
 
+#include "Engine/World.h"
+#include "Engine/GameInstance.h"
+
+#include "ROS2NodeSubsystem.h"
+
 #include "ROS2ActionServer.h"
 
 #include "Kismet/GameplayStatics.h" 
@@ -19,21 +24,22 @@ void UROS2ActionServer::InitializeActionComponent(const UROS2QoS QoS)
 
     rcl_allocator_t allocator = rcl_get_default_allocator();
     RCSOFTCHECK(rcl_ros_clock_init(&ros_clock, &allocator));
+    
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    
     rcl_ret_t rc = rcl_action_server_init(
-        &server, ROSNode->GetRCLNode(), &ros_clock, action_type_support, TCHAR_TO_UTF8(*ActionName), &server_opt);
+        &server, NodeSubsystem->GetRCLNode(), &ros_clock, action_type_support, TCHAR_TO_UTF8(*ActionName), &server_opt);
 
     check(rc == RCL_RET_OK);
 }
 
 void UROS2ActionServer::Destroy()
 {
-    Super::Destroy();
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    RCSOFTCHECK(rcl_action_server_fini(&server, NodeSubsystem->GetRCLNode()));
+    RCSOFTCHECK(rcl_ros_clock_fini(&ros_clock));
 
-    if (ROSNode != nullptr)
-    {
-        RCSOFTCHECK(rcl_action_server_fini(&server, ROSNode->GetRCLNode()));
-        RCSOFTCHECK(rcl_ros_clock_fini(&ros_clock));
-    }
+    Super::Destroy();
 }
 
 void UROS2ActionServer::ProcessReady(rcl_wait_set_t* wait_set)
@@ -93,7 +99,6 @@ void UROS2ActionServer::ProcessAndSendCancelResponse()
 {
     UE_LOG(LogROS2Action, Log, TEXT("C. Action Server - Send cancel response (%s)"), *__LOG_INFO__);
     check(State == UROS2State::Initialized);
-    check(IsValid(ROSNode));
 
     rcl_action_cancel_request_t cancel_request = rcl_action_get_zero_initialized_cancel_request();
     float TimeOfCancelProcess = UGameplayStatics::GetTimeSeconds(reinterpret_cast<UObject*>(GetWorld()));
@@ -112,7 +117,6 @@ void UROS2ActionServer::UpdateAndSendFeedback()
 {
     UE_LOG(LogROS2Action, Log, TEXT("7. Action Server - Publish feedback (%s)"), *__LOG_INFO__);
     check(State == UROS2State::Initialized);
-    check(IsValid(ROSNode));
 
     UpdateFeedbackDelegate.ExecuteIfBound(Action);
 
@@ -123,7 +127,6 @@ void UROS2ActionServer::UpdateAndSendResult()
 {
     UE_LOG(LogROS2Action, Log, TEXT("9. Action Server - Send result response (%s)"), *__LOG_INFO__);
     check(State == UROS2State::Initialized);
-    check(IsValid(ROSNode));
 
     UpdateResultDelegate.ExecuteIfBound(Action);
 

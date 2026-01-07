@@ -2,7 +2,7 @@
 
 #include <Components/ActorComponent.h>
 #include <CoreMinimal.h>
-#include <ROS2Node.h>
+#include "rclcUtilities.h"
 
 #include "ROS2Subscriber.generated.h"
 

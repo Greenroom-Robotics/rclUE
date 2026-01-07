@@ -1,6 +1,6 @@
 // Copyright 2020-2021 Rapyuta Robotics Co., Ltd.
 
-#include "ROS2NodeSubsystem.h"
+#include "Engine/GameInstance.h"
 
 #include "ROS2ActionClient.h"
 #include "ROS2ActionServer.h"
@@ -10,6 +10,8 @@
 #include "ROS2Support.h"
 
 #include "Misc/ConfigCacheIni.h"
+
+#include "ROS2NodeSubsystem.h"
 
 DEFINE_LOG_CATEGORY(LogROS2NodeSubsystem);
 
