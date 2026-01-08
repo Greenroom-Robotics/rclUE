@@ -100,13 +100,13 @@ public:
     UFUNCTION(BlueprintPure, Category="ROS2|Parameters")
     static double GetDoubleParameter(const FROS2Parameter& Param);
 
-    UFUNCTION(BlueprintPure, Category="ROS2|Parameters")
+    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
     static FROS2Parameter& SetBooleanParameter(UPARAM(ref) FROS2Parameter& Param, bool InValue);
 
-    UFUNCTION(BlueprintPure, Category="ROS2|Parameters")
+    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
     static FROS2Parameter& SetIntegerParameter(UPARAM(ref) FROS2Parameter& Param, int64 InValue);
 
-    UFUNCTION(BlueprintPure, Category="ROS2|Parameters")
+    UFUNCTION(BlueprintCallable, Category="ROS2|Parameters")
     static FROS2Parameter& SetDoubleParameter(UPARAM(ref) FROS2Parameter& Param, double InValue);
 };
 
