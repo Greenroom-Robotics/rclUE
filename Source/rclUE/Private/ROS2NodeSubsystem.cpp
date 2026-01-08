@@ -15,14 +15,6 @@
 
 DEFINE_LOG_CATEGORY(LogROS2NodeSubsystem);
 
-// UROS2NodeSubsystem::UROS2NodeSubsystem()
-// {
-//     // PrimaryActorTick.bCanEverTick = true;
-//     // PrimaryActorTick.bStartWithTickEnabled = true;
-//     //
-//     // RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-// }
-
 UROS2Subsystem* UROS2NodeSubsystem::ROSSubsystem()
 {
     return GetGameInstance()->GetSubsystem<UROS2Subsystem>();
@@ -262,7 +254,6 @@ void UROS2NodeSubsystem::AddActionClient(UROS2ActionClient* InActionClient)
 
     if (false == ActionClients.Contains(InActionClient))
     {
-        // InActionClient->ROSNode = this;
         InActionClient->Init(UROS2QoS::Default);
         ActionClients.Add(InActionClient);
     }
@@ -278,7 +269,6 @@ void UROS2NodeSubsystem::AddActionServer(UROS2ActionServer* InActionServer)
 
     if (false == ActionServers.Contains(InActionServer))
     {
-        // InActionServer->ROSNode = this;
         InActionServer->Init(UROS2QoS::Default);
         ActionServers.Add(InActionServer);
     }
