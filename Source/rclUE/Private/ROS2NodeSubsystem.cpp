@@ -33,6 +33,8 @@ void UROS2NodeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Collection.InitializeDependency<UROS2Subsystem>();
     Super::Initialize(Collection);
+    
+    _rcl_node = rcl_get_zero_initialized_node();
 
     TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Initialize")
 
@@ -60,17 +62,14 @@ void UROS2NodeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     Support = GetGameInstance()->GetSubsystem<UROS2Subsystem>()->GetSupport();
 
     FScopeLock lock(GetMutex());
-    if (!rcl_node_is_valid(GetRCLNode()))
-    {
-        rcutils_reset_error();
+    rcutils_reset_error();
 
-        rcl_node_options_t node_ops = rcl_node_get_default_options();
-        node_ops.allocator = ROSSubsystem()->Allocator();
-        RCSOFTCHECK(rclc_node_init_with_options(GetRCLNode(), StringCast<ANSICHAR>(*Name).Get(),
-            StringCast<ANSICHAR>(*Namespace).Get(), &Support->Get(), &node_ops));
+    rcl_node_options_t node_ops = rcl_node_get_default_options();
+    node_ops.allocator = ROSSubsystem()->Allocator();
+    RCSOFTCHECK(rclc_node_init_with_options(GetRCLNode(), StringCast<ANSICHAR>(*Name).Get(),
+        StringCast<ANSICHAR>(*Namespace).Get(), &Support->Get(), &node_ops));
 
-        UE_LOG(LogROS2NodeSubsystem, Display, TEXT("Node started with name '%s'"), *Name);
-    }
+    UE_LOG(LogROS2NodeSubsystem, Display, TEXT("Node started with name '%s'"), *Name);
 
     State = UROS2State::Initialized;
 }
@@ -140,7 +139,7 @@ bool UROS2NodeSubsystem::IsTickableInEditor() const
 
 TStatId UROS2NodeSubsystem::GetStatId() const
 {
-    RETURN_QUICK_DECLARE_CYCLE_STAT(UROS2Subsystem, STATGROUP_Tickables);
+    RETURN_QUICK_DECLARE_CYCLE_STAT(UROS2NodeSubsystem, STATGROUP_Tickables);
 }
 
 void UROS2NodeSubsystem::AddSubscriber(UROS2Subscriber* Subscriber)
@@ -166,7 +165,7 @@ void UROS2NodeSubsystem::AddSubscriber(UROS2Subscriber* Subscriber)
     }
     else
     {
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Attempt to re-add Publisher %s (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
+        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Attempt to re-add subscriber %s (%s)"), *Name, *Subscriber->GetName(), *__LOG_INFO__);
     }
 }
 
