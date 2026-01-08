@@ -39,7 +39,6 @@ struct RCLUE_API FROS2Parameter
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     FString Description;
     
-    // UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TVariant<bool, int64, double> Value;
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -47,42 +46,6 @@ struct RCLUE_API FROS2Parameter
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool ReadOnly = false;
-    
-    // UFUNCTION(BlueprintCallable)
-    // bool GetBooleanValue() const
-    // {
-    //     return Value.Get<bool>();
-    // }
-    //
-    // UFUNCTION(BlueprintCallable)
-    // int64 GetIntegerValue() const
-    // {
-    //     return Value.Get<int64>();
-    // }
-    //
-    // UFUNCTION(BlueprintCallable)
-    // double GetDoubleValue() const
-    // {
-    //     return Value.Get<double>();
-    // }
-    //
-    // UFUNCTION(BlueprintCallable)
-    // void SetBooleanValue(bool InValue)
-    // {
-    //     Value.Set<bool>(InValue);
-    // }
-    //
-    // UFUNCTION(BlueprintCallable)
-    // void SetIntegerValue(int64 InValue)
-    // {
-    //     Value.Set<int64>(InValue);
-    // }
-    //
-    // UFUNCTION(BlueprintCallable)
-    // void SetDoubleValue(double InValue)
-    // {
-    //     Value.Set<double>(InValue);
-    // }
 };
 
 UCLASS()

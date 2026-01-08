@@ -76,9 +76,6 @@ public:
     UPROPERTY(VisibleAnywhere, Category = "Diagnostics")
     int NEvents = 0;
 
-    // UPROPERTY(BlueprintAssignable)
-    // FOnNodeInitialisedDelegate OnNodeInitialised;
-
     UROS2Subsystem* ROSSubsystem();
     
     FCriticalSection* GetMutex()
