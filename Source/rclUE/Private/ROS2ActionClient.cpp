@@ -1,12 +1,16 @@
 // Copyright 2020-2021 Rapyuta Robotics Co., Ltd.
 
-#include "ROS2ActionClient.h"
+#include "Engine/World.h"
+#include "Engine/GameInstance.h"
 
+#include "ROS2NodeSubsystem.h"
 #include "Kismet/GameplayStatics.h" 
 
+#include "ROS2ActionClient.h"
 
 void UROS2ActionClient::InitializeActionComponent(const UROS2QoS QoS)
 {
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
     const rosidl_action_type_support_t* action_type_support = Action->GetTypeSupport();
 
     client = rcl_action_get_zero_initialized_client();
@@ -19,17 +23,14 @@ void UROS2ActionClient::InitializeActionComponent(const UROS2QoS QoS)
     client_opt.status_topic_qos = QoSProfiles_LUT[QoS];
 
     rcl_ret_t rc =
-        rcl_action_client_init(&client, ROSNode->GetRCLNode(), action_type_support, TCHAR_TO_UTF8(*ActionName), &client_opt);
+        rcl_action_client_init(&client, NodeSubsystem->GetRCLNode(), action_type_support, TCHAR_TO_UTF8(*ActionName), &client_opt);
 }
 
 void UROS2ActionClient::Destroy()
 {
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    RCSOFTCHECK(rcl_action_client_fini(&client, NodeSubsystem->GetRCLNode()));
     Super::Destroy();
-
-    if (ROSNode != nullptr)
-    {
-        RCSOFTCHECK(rcl_action_client_fini(&client, ROSNode->GetRCLNode()));
-    }
 }
 
 void UROS2ActionClient::ProcessReady(rcl_wait_set_t* wait_set)
@@ -79,10 +80,11 @@ void UROS2ActionClient::ProcessReady(rcl_wait_set_t* wait_set)
 void UROS2ActionClient::UpdateAndSendGoal()
 {
     check(State == UROS2State::Initialized);
-    check(IsValid(ROSNode));
 
     bool ActionServerIsAvailable = false;
-    RCSOFTCHECK(rcl_action_server_is_available(ROSNode->GetRCLNode(), &client, &ActionServerIsAvailable));
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+
+    RCSOFTCHECK(rcl_action_server_is_available(NodeSubsystem->GetRCLNode(), &client, &ActionServerIsAvailable));
     if (ActionServerIsAvailable)
     {
         UE_LOG(LogROS2Action, Log, TEXT("1. Action Client - Send goal (%s)"), *__LOG_INFO__);

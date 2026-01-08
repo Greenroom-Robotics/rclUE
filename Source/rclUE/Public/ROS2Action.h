@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include "ROS2Node.h"
-
 #include <ROS2GenericAction.h>
 #include <Components/ActorComponent.h>
 #include <CoreMinimal.h>
@@ -41,9 +39,6 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UROS2GenericAction* Action;
-
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    AROS2Node* ROSNode;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     UROS2State State = UROS2State::Created;

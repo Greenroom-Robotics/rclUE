@@ -13,8 +13,6 @@
 #include "Msgs/ROS2Time.h"
 #include "ROS2Support.generated.h"
 
-class AROS2Node;
-
 UCLASS(Blueprintable)
 class RCLUE_API UROS2Support : public UObject
 {
@@ -27,10 +25,15 @@ public:
     UFUNCTION(BlueprintCallable)
     void Fini();
 
-    rclc_support_t& Get();
-
-    void RegisterNode(AROS2Node* node);
-    TArray<AROS2Node*> Nodes;
+    rclc_support_t& Get()
+    {
+        return support;
+    }
+    
+    rclc_support_t* GetPtr()
+    {
+        return &support;
+    }
 
 private:
 

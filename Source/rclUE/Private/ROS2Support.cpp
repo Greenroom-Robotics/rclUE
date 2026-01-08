@@ -1,14 +1,8 @@
 // Copyright 2020-2021 Rapyuta Robotics Co., Ltd.
 
 #include "ROS2Support.h"
-#include "ROS2Node.h"
 
 DEFINE_LOG_CATEGORY(LogROS2Support);
-
-rclc_support_t& UROS2Support::Get()
-{
-    return support;
-}
 
 void UROS2Support::Init()
 {
@@ -18,9 +12,6 @@ void UROS2Support::Init()
     RCHARDCHECK(rclc_support_init(&support, 0, nullptr, &allocator));
 }
 
-void UROS2Support::RegisterNode(AROS2Node* node) {
-    Nodes.Add(node);
-}
 
 void UROS2Support::Fini()
 {

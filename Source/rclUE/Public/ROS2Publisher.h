@@ -3,7 +3,8 @@
 
 #include <Components/ActorComponent.h>
 #include <CoreMinimal.h>
-#include <ROS2Node.h>
+
+#include "rclcUtilities.h"
 
 #include "ROS2Publisher.generated.h"
 
@@ -16,16 +17,16 @@ class RCLUE_API UROS2Publisher : public UActorComponent
 public:
     UROS2Publisher(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (EditCondition="!bQosOverride"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (EditCondition="!bQosOverride", ExposeOnSpawn = true))
     UROS2QoS QosProfilePreset = UROS2QoS::Default;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true))
     bool bQosOverride = false;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (EditCondition="bQosOverride"))
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (EditCondition="bQosOverride", ExposeOnSpawn = true))
     FROS2QualityOfService Qos;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true))
     FString TopicName;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (InlineEditConditionToggle))
@@ -34,20 +35,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (EditCondition="bPublishOnTimer"))
     float PublicationFrequencyHz = 10.0;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Meta = (ExposeOnSpawn = true))
     TSubclassOf<UROS2GenericMsg> TopicType;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool bPublish = true;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-    AROS2Node* ROSNode;
-
     UPROPERTY(BlueprintReadOnly)
     UROS2State State = UROS2State::Created;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool bAutoInitialise = false;
 
     // TODO refactor this class into two, split out ROS stuff from actorcomponent
     UPROPERTY(BlueprintReadOnly)
@@ -56,20 +51,9 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
     FTimerHandle TimerHandle;
 
-    FCriticalSection Mutex;
-
-    const void* PublishedMsg = nullptr;
-
-    rcl_publisher_t RclPublisher;
-
-    UFUNCTION(BlueprintCallable)
-    void Init();
-
     UFUNCTION(BlueprintCallable)
     void Reinitialise();
 
-    bool FindAndSetROSNode();
-    void WhenNodeInits();
     void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
@@ -95,5 +79,11 @@ protected:
     }
 
 private:
+    rcl_publisher_t RclPublisher;
+    FCriticalSection Mutex;
+    const void* PublishedMsg = nullptr;
+    
+    void Init();
+    
     TFuture<void> AsyncPublisherFuture;
 };

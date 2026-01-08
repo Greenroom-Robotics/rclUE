@@ -2,6 +2,8 @@
 
 using System;
 using System.IO;
+using System.Linq;
+
 using UnrealBuildTool;
 using System.Collections.Generic;
 using EpicGames.Core;
@@ -79,7 +81,7 @@ public class ros2lib : ModuleRules
             if (Directory.Exists(librariesPath))
             {
                 PublicSystemLibraryPaths.Add(librariesPath);
-                var libs = Directory.EnumerateFiles(librariesPath, "*.so", SearchOption.TopDirectoryOnly);
+                var libs = Directory.EnumerateFiles(librariesPath, "*.so", SearchOption.TopDirectoryOnly).Concat(Directory.EnumerateFiles(librariesPath, "*.a", SearchOption.TopDirectoryOnly));
 
                 foreach (var libName in libs)
                 {
@@ -94,7 +96,7 @@ public class ros2lib : ModuleRules
                 PublicSystemLibraryPaths.Add(librariesPath);
             }
 
-            var libs = Directory.EnumerateFiles(librariesPath, "*" + pkg + "*.so", SearchOption.TopDirectoryOnly);
+            var libs = Directory.EnumerateFiles(librariesPath, "*" + pkg + "*.so", SearchOption.TopDirectoryOnly).Concat(Directory.EnumerateFiles(librariesPath, "*" + pkg + "*.a", SearchOption.TopDirectoryOnly));
 
             foreach (var libFilename in libs)
             {
@@ -114,7 +116,7 @@ public class ros2lib : ModuleRules
                                      "geometry_msgs", "geographic_msgs", "sensor_msgs", "nav_msgs", "tf2_msgs", "unique_identifier_msgs", "action_msgs", "service_msgs",
                                      "rosidl_dynamic_typesupport", "rosidl_generator_c", "rosidl_typesupport_c", "rosidl_typesupport_interface", "rosidl_typesupport_introspection_c", "rosidl_runtime_c",
                                      "rcl", "rcl_action", "rcl_lifecycle", "rcl_yaml_param_parser", "rcl_interfaces", "type_description_interfaces",
-                                     "rclc", "rclc_lifecycle" };
+                                     "rclc", "rclc_lifecycle", "rclc_parameter" };
 
         if (Target.Platform == UnrealTargetPlatform.Linux)
         {

@@ -1,8 +1,12 @@
 #include "ROS2Subscriber.h"
 #include "ROS2Support.h"
 
-#include <Engine/World.h>
-#include <Kismet/GameplayStatics.h>
+#include "Engine/World.h"
+#include "Engine/GameInstance.h"
+
+#include "ROS2NodeSubsystem.h"
+
+#include "Kismet/GameplayStatics.h"
 
 
 DEFINE_LOG_CATEGORY(LogROS2Subscriber);
@@ -17,43 +21,23 @@ void UROS2Subscriber::BeginPlay()
 {
     Super::BeginPlay();
 
-    if (bAutoInitialise)
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    if (!IsValid(NodeSubsystem))
     {
-        if (!IsValid(ROSNode))
-        {
-            if (!FindAndSetROSNode())
-            {
-                UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
-                return;
-            }
-        }
-        if (ROSNode->State != UROS2State::Initialized)
-        {
-            ROSNode->OnNodeInitialised.AddDynamic(this, &UROS2Subscriber::WhenNodeInits);
-        } else
-        {
-            WhenNodeInits();
-        }
+        UE_LOG(LogROS2Publisher, Error, TEXT("No ROS2 Node Subsystem found."));
+        return;
     }
-}
 
-bool UROS2Subscriber::FindAndSetROSNode()
-{
-    AROS2Node* FirstROSNode = Cast<AROS2Node>(UGameplayStatics::GetActorOfClass(GetWorld(), AROS2Node::StaticClass()));
-    if (IsValid(FirstROSNode))
-    {
-        ROSNode = FirstROSNode;
-        return true;
-    }
-    UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
-    return false;
+    NodeSubsystem->AddSubscriber(this);
+    Init();
 }
 
 void UROS2Subscriber::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     Destroy();
-    if (IsValid(ROSNode)){
-        ROSNode->Subscribers.Remove(this);
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    if (IsValid(NodeSubsystem)){
+        NodeSubsystem->Subscribers.Remove(this);
     }
     Super::EndPlay(EndPlayReason);
 }
@@ -68,13 +52,12 @@ void UROS2Subscriber::Init()
 
     UE_LOG(LogROS2Subscriber, Verbose, TEXT("[%s] Initialising..."), *GetName());
 
-    if (!IsValid(ROSNode)) {
-        UE_LOG(LogROS2Subscriber, Error, TEXT("[%s] ROS Node is invalid"), *GetName());
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    if (!IsValid(NodeSubsystem)) {
+        UE_LOG(LogROS2Subscriber, Error, TEXT("[%s] ROS Node Subsystem is invalid"), *GetName());
         return;
     }
-
-    check(ROSNode->State == UROS2State::Initialized);
-
+    
     if (State == UROS2State::Created)
     {
         if(TopicName.IsEmpty())
@@ -93,12 +76,12 @@ void UROS2Subscriber::Init()
         check(IsValid(TopicMessage));
         TopicMessage->Init();
 
-        FScopeLock lock(ROSNode->GetMutex());
+        FScopeLock lock(NodeSubsystem->GetMutex());
 
         rcl_subscription = rcl_get_zero_initialized_subscription();
 
         rcl_subscription_options_t sub_opt = rcl_subscription_get_default_options();
-        sub_opt.allocator = ROSNode->ROSSubsystem()->GetRclUEAllocator();
+        sub_opt.allocator = NodeSubsystem->ROSSubsystem()->Allocator();
 
         if (bQosOverride) {
             sub_opt.qos = Qos.ToRMW();
@@ -106,10 +89,10 @@ void UROS2Subscriber::Init()
             sub_opt.qos = QoSProfiles_LUT[QosProfilePreset];
         }
 
-        UE_LOG(LogROS2Subscriber, Display, TEXT("[%s] Subscribing to topic %s"), *GetName(), *TopicName);
-        RCSOFTCHECK(rcl_subscription_init(&rcl_subscription, ROSNode->GetRCLNode(), TopicMessage->GetTypeSupport(), TCHAR_TO_UTF8(*TopicName), &sub_opt));
+        UE_LOG(LogROS2Subscriber, Display, TEXT("[%s] Subscribing to topic '%s'"), *GetName(), *TopicName);
+        RCSOFTCHECK(rcl_subscription_init(&rcl_subscription, NodeSubsystem->GetRCLNode(), TopicMessage->GetTypeSupport(), TCHAR_TO_UTF8(*TopicName), &sub_opt));
 
-        ROSNode->InvalidateWaitSet();
+        NodeSubsystem->InvalidateWaitSet();
 
         State = UROS2State::Initialized;
     }
@@ -121,16 +104,18 @@ void UROS2Subscriber::Destroy()
     {
         return;
     }
+
     UE_LOG(LogROS2Subscriber, Verbose, TEXT("[%s] subscriber destroy start (%s)"), *GetName(), *__LOG_INFO__);
     if (IsValid(TopicMessage))
     {
         TopicMessage->Fini();
     }
 
-    if (IsValid(ROSNode))
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    if (IsValid(NodeSubsystem))
     {
         UE_LOG(LogROS2Subscriber, Verbose, TEXT("Subscriber Destroy - rcl_Subscriber_fini (%s)"), *__LOG_INFO__);
-        RCSOFTCHECK(rcl_subscription_fini(&rcl_subscription, ROSNode->GetRCLNode()));
+        RCSOFTCHECK(rcl_subscription_fini(&rcl_subscription, NodeSubsystem->GetRCLNode()));
     }
     UE_LOG(LogROS2Subscriber, Display, TEXT("[%s] subscriber destroyed"), *GetName());
 
@@ -139,21 +124,16 @@ void UROS2Subscriber::Destroy()
 
 void UROS2Subscriber::Reinitialise()
 {
-    if (!IsValid(ROSNode))
-    {
-        if (!FindAndSetROSNode())
-        {
-            UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Cannot locate a ROSNode Actor instance. Initialisation failed."), *GetName());
-            return;
-        }
-        WhenNodeInits();
-    }
     Destroy();
     Init();
 }
 
 void UROS2Subscriber::HandleMessage(UROS2GenericMsg* Message)
 {
+    if (OnMessageReceived.IsBound()) {
+        OnMessageReceived.Broadcast(Message);
+    }
+
     if (IncomingMessageDelegate.IsBound()) {
         IncomingMessageDelegate.Broadcast(Message);
     } else {
@@ -164,10 +144,4 @@ void UROS2Subscriber::HandleMessage(UROS2GenericMsg* Message)
 void UROS2Subscriber::IncomingMessage_Implementation(UROS2GenericMsg* Message)
 {
     UE_LOG(LogROS2Subscriber, Error, TEXT("[%s] IncomingMessage has not been overriden."), *GetName());
-}
-
-void UROS2Subscriber::WhenNodeInits()
-{
-    UE_LOG(LogROS2Subscriber, Verbose, TEXT("[%s] Node is ready!."), *GetName());
-    ROSNode->AddSubscriber(this);
 }

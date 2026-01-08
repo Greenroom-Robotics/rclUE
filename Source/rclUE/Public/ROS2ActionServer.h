@@ -6,7 +6,6 @@
 #pragma once
 
 #include "ROS2Action.h"
-#include "ROS2Node.h"
 
 #include <rcl_action/action_server.h>
 

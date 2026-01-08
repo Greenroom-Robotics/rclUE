@@ -39,9 +39,14 @@ public:
 
     virtual TStatId GetStatId() const override;
 
-    rcl_allocator_t GetRclUEAllocator()
+    rcl_allocator_t& Allocator()
     {
         return ue_allocator;
+    }
+    
+    rcl_allocator_t* AllocatorPtr()
+    {
+        return &ue_allocator;
     }
 
 private:
