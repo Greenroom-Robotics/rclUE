@@ -59,13 +59,13 @@ void UROS2Publisher::Init()
     {
         if(TopicName.IsEmpty())
         {
-            UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Topic name not set. Initialisation failed."), *GetName());
+            UE_LOG(LogROS2Publisher, Error, TEXT("[%s (%s)] Topic name not set. Initialisation failed."), *GetName(), *GetOwner()->GetName());
             return;
         }
 
         if(TopicType == nullptr)
         {
-            UE_LOG(LogROS2Publisher, Error, TEXT("[%s] Topic Type not set. Initialisation failed."), *GetName());
+            UE_LOG(LogROS2Publisher, Error, TEXT("[%s (%s)] Topic Type not set. Initialisation failed."), *GetName(), *GetOwner()->GetName());
             return;
         }
 
