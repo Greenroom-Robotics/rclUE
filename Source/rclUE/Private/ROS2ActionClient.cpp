@@ -29,7 +29,10 @@ void UROS2ActionClient::InitializeActionComponent(const UROS2QoS QoS)
 void UROS2ActionClient::Destroy()
 {
     UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
-    RCSOFTCHECK(rcl_action_client_fini(&client, NodeSubsystem->GetRCLNode()));
+    if (IsValid(NodeSubsystem))
+    {
+        RCSOFTCHECK(rcl_action_client_fini(&client, NodeSubsystem->GetRCLNode()));
+    }
     Super::Destroy();
 }
 

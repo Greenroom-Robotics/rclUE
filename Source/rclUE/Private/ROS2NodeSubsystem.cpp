@@ -71,11 +71,8 @@ void UROS2NodeSubsystem::Deinitialize()
     TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Deinitialize")
     UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Bring Down start"), *GetName());
 
-    for (auto& s : Subscribers)
-    {
-        // RemoveSubscriber(s);
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Subscriber still alive during deinit"), *s->GetName());
-    }
+    // Mark state early to prevent Tick/SpinSome from running during teardown
+    State = UROS2State::Created;
 
     Subscribers.Empty();
 
@@ -84,25 +81,28 @@ void UROS2NodeSubsystem::Deinitialize()
         RCSOFTCHECK(rcl_service_fini(&s.rcl_service, GetRCLNode()));
     }
 
-    for (auto& p : Publishers)
-    {
-        // RemovePublisher(p);
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Publisher still alive during deinit"), *p->GetName());
-    }
-
+    Services.Empty();
     Publishers.Empty();
+    Clients.Empty();
+    ActionClients.Empty();
+    ActionServers.Empty();
 
     RCSOFTCHECK(rcl_wait_set_fini(&wait_set));
 
     UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Bring Down - rcl_node_fini"), *GetName());
     RCSOFTCHECK(rcl_node_fini(GetRCLNode()));
     UE_LOG(LogROS2NodeSubsystem, Display, TEXT("[%s] Node destroyed"), *GetName());
-    
+
     Super::Deinitialize();
 }
 
 void UROS2NodeSubsystem::Tick(float DeltaTime)
 {
+    if (State != UROS2State::Initialized)
+    {
+        return;
+    }
+
     if (Subscribers.Num() > 0 || Clients.Num() > 0 || Services.Num() > 0)
     {
         SpinSome();

@@ -83,6 +83,7 @@ void UROS2ParameterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
       R2Subsystem->AllocatorPtr());
     rclc_executor_add_parameter_server_with_context(&executor, &param_server, on_parameter_changed, this);
     
+    bIsInitialized = true;
     UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Initialised parameter server on node '%s'"), *NodeSubsystem->Name);
 }
 
@@ -90,11 +91,25 @@ void UROS2ParameterSubsystem::Deinitialize()
 {
     FScopeLock Lock(&Mutex);
 
+    bIsInitialized = false;
+
     UROS2NodeSubsystem* NodeSubsystem = GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
-    rclc_executor_fini(&executor);
-    rclc_parameter_server_fini(&param_server, NodeSubsystem->GetRCLNode());
-    
-    UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Destroyed parameter server on node '%s'"), *NodeSubsystem->Name);
+    bool bNodeValid = IsValid(NodeSubsystem) && NodeSubsystem->State == UROS2State::Initialized;
+
+    // rclc_executor_fini destroys its internal wait set via the RMW layer,
+    // which requires a valid RCL context. Only safe to call if the node
+    // (and therefore the context) is still alive.
+    if (bNodeValid)
+    {
+        rclc_executor_fini(&executor);
+        rclc_parameter_server_fini(&param_server, NodeSubsystem->GetRCLNode());
+        UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Destroyed parameter server on node '%s'"), *NodeSubsystem->Name);
+    }
+    else
+    {
+        UE_LOG(LogROS2ParameterSubsystem, Warning, TEXT("Skipping parameter subsystem fini - node already destroyed"));
+    }
+
     Super::Deinitialize();
 }
 
@@ -178,6 +193,10 @@ FROS2Parameter* UROS2ParameterSubsystem::UpdateParameterInternal(const Parameter
 
 void UROS2ParameterSubsystem::Tick(float DeltaTime)
 {
+    if (!bIsInitialized)
+    {
+        return;
+    }
     rclc_executor_spin_some(&executor, 0);
 }
 
