@@ -129,6 +129,7 @@ protected:
     TMap<FString, FROS2Parameter> ParametersCache;
     FCriticalSection Mutex;
 
+    bool bIsInitialized = false;
     rclc_executor_t executor;
     rclc_parameter_server_t param_server;
 };

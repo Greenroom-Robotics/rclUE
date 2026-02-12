@@ -57,10 +57,12 @@ void UROS2ServiceClient::Destroy()
         Service->Fini();
     }
 
-    UE_LOG(LogROS2Service, Log, TEXT("Client Destroy - rcl_client_fini (%s)"), *__LOG_INFO__);
     UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
-    RCSOFTCHECK(rcl_client_fini(&client, NodeSubsystem->GetRCLNode()));
-
+    if (IsValid(NodeSubsystem))
+    {
+        UE_LOG(LogROS2Service, Log, TEXT("Client Destroy - rcl_client_fini (%s)"), *__LOG_INFO__);
+        RCSOFTCHECK(rcl_client_fini(&client, NodeSubsystem->GetRCLNode()));
+    }
 }
 
 void UROS2ServiceClient::UpdateAndSendRequest()

@@ -36,7 +36,10 @@ void UROS2ActionServer::InitializeActionComponent(const UROS2QoS QoS)
 void UROS2ActionServer::Destroy()
 {
     UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
-    RCSOFTCHECK(rcl_action_server_fini(&server, NodeSubsystem->GetRCLNode()));
+    if (IsValid(NodeSubsystem))
+    {
+        RCSOFTCHECK(rcl_action_server_fini(&server, NodeSubsystem->GetRCLNode()));
+    }
     RCSOFTCHECK(rcl_ros_clock_fini(&ros_clock));
 
     Super::Destroy();
