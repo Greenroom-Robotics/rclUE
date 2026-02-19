@@ -14,40 +14,37 @@
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class RCLUE_API UROS2ActionClient : public UROS2Action
 {
-    GENERATED_BODY()
+  GENERATED_BODY()
 
 public:
-    virtual void Destroy() override;
+  virtual void Destroy() override;
 
-    virtual void ProcessReady(rcl_wait_set_t* wait_set) override;
+  virtual void ProcessReady(rcl_wait_set_t* wait_set) override;
 
-    UFUNCTION(BlueprintCallable)
-    void UpdateAndSendGoal();
+  UFUNCTION(BlueprintCallable)
+  void UpdateAndSendGoal();
 
-    UFUNCTION(BlueprintCallable)
-    void GetResultRequest();
+  UFUNCTION(BlueprintCallable)
+  void GetResultRequest();
 
-    UFUNCTION(BlueprintCallable)
-    void CancelActionRequest();
+  UFUNCTION(BlueprintCallable)
+  void CancelActionRequest();
 
-    void SetDelegates(const FActionCallback& SetGoal,
-                      const FActionCallback& Feedback,
-                      const FActionCallback& Result,
-                      const FSimpleCallback& GoalResponse,
-                      const FSimpleCallback& Cancel);
+  void SetDelegates(const FActionCallback& SetGoal, const FActionCallback& Feedback, const FActionCallback& Result,
+                    const FSimpleCallback& GoalResponse, const FSimpleCallback& Cancel);
 
-    rcl_action_client_t client;
+  rcl_action_client_t client;
 
 private:
-    rmw_request_id_t goal_res_id;
-    rmw_request_id_t result_res_id;
-    rmw_request_id_t cancel_res_id;
+  rmw_request_id_t goal_res_id;
+  rmw_request_id_t result_res_id;
+  rmw_request_id_t cancel_res_id;
 
-    FActionCallback SetGoalDelegate;
-    FActionCallback FeedbackDelegate;
-    FActionCallback ResultDelegate;
-    FSimpleCallback GoalResponseDelegate;
-    FSimpleCallback CancelDelegate;
+  FActionCallback SetGoalDelegate;
+  FActionCallback FeedbackDelegate;
+  FActionCallback ResultDelegate;
+  FSimpleCallback GoalResponseDelegate;
+  FSimpleCallback CancelDelegate;
 
-    virtual void InitializeActionComponent(const UROS2QoS QoS) override;
+  virtual void InitializeActionComponent(const UROS2QoS QoS) override;
 };

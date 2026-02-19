@@ -16,71 +16,62 @@
 UCLASS(Blueprintable)
 class RCLUE_API UROS2Support : public UObject
 {
-    GENERATED_BODY()
+  GENERATED_BODY()
 
 public:
-    UFUNCTION(BlueprintCallable)
-    void Init();
+  UFUNCTION(BlueprintCallable)
+  void Init();
 
-    UFUNCTION(BlueprintCallable)
-    void Fini();
+  UFUNCTION(BlueprintCallable)
+  void Fini();
 
-    rclc_support_t& Get()
-    {
-        return support;
-    }
-    
-    rclc_support_t* GetPtr()
-    {
-        return &support;
-    }
+  rclc_support_t& Get() { return support; }
+
+  rclc_support_t* GetPtr() { return &support; }
 
 private:
-
-    rcl_allocator_t allocator;
-    rclc_support_t support;
+  rcl_allocator_t allocator;
+  rclc_support_t  support;
 };
 
 static rmw_qos_profile_t BuildQoSProfile(UROS2QosHistoryPolicy QosHistoryPolicy, int32 QosDepth,
-    UROS2QosReliabilityPolicy QosReliabilityPolicy, UROS2QosDurabilityPolicy QosDurabilityPolicy);
+                                         UROS2QosReliabilityPolicy QosReliabilityPolicy,
+                                         UROS2QosDurabilityPolicy  QosDurabilityPolicy);
 
 UCLASS()
-class URCLUEBlueprintLibrary :
-    public UBlueprintFunctionLibrary
+class URCLUEBlueprintLibrary : public UBlueprintFunctionLibrary
 {
-    GENERATED_UCLASS_BODY()
+  GENERATED_UCLASS_BODY()
 
 public:
-    UFUNCTION(BlueprintPure, Category="Transforms")
-    static FQuat RotatorToQuat(const FRotator& rotator) {
-        return rotator.Quaternion();
-    }
+  UFUNCTION(BlueprintPure, Category = "Transforms")
+  static FQuat RotatorToQuat(const FRotator& rotator) { return rotator.Quaternion(); }
 
-    UFUNCTION(BlueprintPure, Category="Utilities")
-    static FROSTime ElapsedToTimestamp(const float elapsedTime)
-    {
-        FROSTime timemsg;
-        timemsg.sec = static_cast<int32>(elapsedTime);
-        uint64 ns = static_cast<uint64>(elapsedTime * 1e+09f);
-        timemsg.nanosec = static_cast<uint32>(ns - (timemsg.sec * 1e+09));
-        return timemsg;
-    }
+  UFUNCTION(BlueprintPure, Category = "Utilities")
+  static FROSTime ElapsedToTimestamp(const float elapsedTime)
+  {
+    FROSTime timemsg;
+    timemsg.sec = static_cast<int32>(elapsedTime);
+    uint64 ns = static_cast<uint64>(elapsedTime * 1e+09f);
+    timemsg.nanosec = static_cast<uint32>(ns - (timemsg.sec * 1e+09));
+    return timemsg;
+  }
 
-    UFUNCTION(BlueprintPure, Category="ROS2|Utilities")
-    static FROSTime ToROSTime(const FDateTime DateTime)
-    {
-        FROSTime timemsg;
-        FTimespan delta = DateTime - FDateTime(1970, 1, 1);
-        timemsg.sec = delta.GetTotalSeconds();
-        timemsg.nanosec = delta.GetFractionNano();
-        return timemsg;
-    }
+  UFUNCTION(BlueprintPure, Category = "ROS2|Utilities")
+  static FROSTime ToROSTime(const FDateTime DateTime)
+  {
+    FROSTime  timemsg;
+    FTimespan delta = DateTime - FDateTime(1970, 1, 1);
+    timemsg.sec = delta.GetTotalSeconds();
+    timemsg.nanosec = delta.GetFractionNano();
+    return timemsg;
+  }
 
-    UFUNCTION(BlueprintPure, Category="ROS2|Utilities")
-    static void SetROSTime(const FDateTime DateTime, FROSTime& timemsg)
-    {
-        FTimespan delta = DateTime - FDateTime(1970, 1, 1);
-        timemsg.sec = delta.GetTotalSeconds();
-        timemsg.nanosec = delta.GetFractionNano();
-    }
+  UFUNCTION(BlueprintPure, Category = "ROS2|Utilities")
+  static void SetROSTime(const FDateTime DateTime, FROSTime& timemsg)
+  {
+    FTimespan delta = DateTime - FDateTime(1970, 1, 1);
+    timemsg.sec = delta.GetTotalSeconds();
+    timemsg.nanosec = delta.GetFractionNano();
+  }
 };

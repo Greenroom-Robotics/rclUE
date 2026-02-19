@@ -11,76 +11,77 @@ DEFINE_LOG_CATEGORY(LogROS2Service);
 // Sets default values for this component's properties
 UROS2ServiceClient::UROS2ServiceClient()
 {
-    PrimaryComponentTick.bCanEverTick = true;
+  PrimaryComponentTick.bCanEverTick = true;
 }
 
 void UROS2ServiceClient::Init(UROS2QoS QoS)
 {
-    if (State == UROS2State::Created)
-    {
-        InitializeService();
+  if (State == UROS2State::Created)
+  {
+    InitializeService();
 
-        check(IsValid(Service));
+    check(IsValid(Service));
 
-        const rosidl_service_type_support_t* srv_type_support = Service->GetTypeSupport();
+    const rosidl_service_type_support_t* srv_type_support = Service->GetTypeSupport();
 
-        client = rcl_get_zero_initialized_client();
-        rcl_client_options_t client_opt = rcl_client_get_default_options();
+    client = rcl_get_zero_initialized_client();
+    rcl_client_options_t client_opt = rcl_client_get_default_options();
 
-        client_opt.qos = QoSProfiles_LUT[QoS];
+    client_opt.qos = QoSProfiles_LUT[QoS];
 
-        UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
-        RCSOFTCHECK(rcl_client_init(&client, NodeSubsystem->GetRCLNode(), srv_type_support, TCHAR_TO_UTF8(*ServiceName), &client_opt));
+    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+    RCSOFTCHECK(rcl_client_init(&client, NodeSubsystem->GetRCLNode(), srv_type_support, TCHAR_TO_UTF8(*ServiceName),
+                                &client_opt));
 
-        State = UROS2State::Initialized;
-    }
+    State = UROS2State::Initialized;
+  }
 
-    Ready = false;
+  Ready = false;
 }
 
 void UROS2ServiceClient::InitializeService()
 {
-    check(ServiceName != FString());
-    check(SrvClass);
+  check(ServiceName != FString());
+  check(SrvClass);
 
-    Service = NewObject<UROS2GenericSrv>(this, SrvClass);
+  Service = NewObject<UROS2GenericSrv>(this, SrvClass);
 
-    check(IsValid(Service));
+  check(IsValid(Service));
 
-    Service->Init();
+  Service->Init();
 }
 
 void UROS2ServiceClient::Destroy()
 {
-    if (Service != nullptr)
-    {
-        Service->Fini();
-    }
+  if (Service != nullptr)
+  {
+    Service->Fini();
+  }
 
-    UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
-    if (IsValid(NodeSubsystem))
-    {
-        UE_LOG(LogROS2Service, Log, TEXT("Client Destroy - rcl_client_fini (%s)"), *__LOG_INFO__);
-        RCSOFTCHECK(rcl_client_fini(&client, NodeSubsystem->GetRCLNode()));
-    }
+  UROS2NodeSubsystem* NodeSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
+  if (IsValid(NodeSubsystem))
+  {
+    UE_LOG(LogROS2Service, Log, TEXT("Client Destroy - rcl_client_fini (%s)"), *__LOG_INFO__);
+    RCSOFTCHECK(rcl_client_fini(&client, NodeSubsystem->GetRCLNode()));
+  }
 }
 
 void UROS2ServiceClient::UpdateAndSendRequest()
 {
-    UE_LOG(LogROS2Service, Log, TEXT("%s"), *__LOG_INFO__);
-    check(State == UROS2State::Initialized);
+  UE_LOG(LogROS2Service, Log, TEXT("%s"), *__LOG_INFO__);
+  check(State == UROS2State::Initialized);
 
-    RequestDelegate.ExecuteIfBound(Service);
-    SendRequest();
+  RequestDelegate.ExecuteIfBound(Service);
+  SendRequest();
 }
 
 void UROS2ServiceClient::SendRequest()
 {
-    UE_LOG(LogROS2Service, Log, TEXT("%s"), *__LOG_INFO__);
-    check(State == UROS2State::Initialized);
+  UE_LOG(LogROS2Service, Log, TEXT("%s"), *__LOG_INFO__);
+  check(State == UROS2State::Initialized);
 
-    req = Service->GetRequest();
+  req = Service->GetRequest();
 
-    int64_t Seq;
-    RCSOFTCHECK(rcl_send_request(&client, req, &Seq));
+  int64_t Seq;
+  RCSOFTCHECK(rcl_send_request(&client, req, &Seq));
 }

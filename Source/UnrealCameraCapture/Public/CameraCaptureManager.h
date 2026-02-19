@@ -13,19 +13,17 @@ DECLARE_LOG_CATEGORY_EXTERN(LogCameraCaptureManager, Log, All);
 USTRUCT(Blueprintable)
 struct FRenderRequestStruct
 {
-	GENERATED_BODY()
+  GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadWrite)
-	FDateTime CaptureTime;
-	
-	UPROPERTY(BlueprintReadWrite)
-	TArray<FColor> Image;
-	
-	FRenderCommandFence RenderFence;
+  UPROPERTY(BlueprintReadWrite)
+  FDateTime CaptureTime;
 
-	FRenderRequestStruct()
-	{
-	}
+  UPROPERTY(BlueprintReadWrite)
+  TArray<FColor> Image;
+
+  FRenderCommandFence RenderFence;
+
+  FRenderRequestStruct() {}
 };
 
 DECLARE_DYNAMIC_DELEGATE_OneParam(FCallbackDelegate, FRenderRequestStruct&, RenderRequest);
@@ -33,84 +31,84 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FCallbackDelegate, FRenderRequestStruct&, Rend
 UCLASS(ClassGroup = (Custom), Blueprintable, meta = (BlueprintSpawnableComponent))
 class UNREALCAMERACAPTURE_API UCameraCaptureManagerComponent : public UActorComponent
 {
-	GENERATED_UCLASS_BODY()
+  GENERATED_UCLASS_BODY()
 
 public:
-	// Color Capture Components
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
-	UPROPERTY()
-	USceneCaptureComponent2D* CaptureComponent;
+  // Color Capture Components
+  // UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
+  UPROPERTY()
+  USceneCaptureComponent2D* CaptureComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
-	int FrameWidth = 640;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
-	int FrameHeight = 480;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture", meta = (InlineEditConditionToggle))
-	bool bCallbackOnCapture = true;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture")
+  int FrameWidth = 640;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture")
+  int FrameHeight = 480;
 
-	// If not UsePNG, JPEG format is used (For Non-Color purposes PNG is necessary, elsewise compression will mess with labels!)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture", Meta = (EditCondition="!bCallbackOnCapture"))
-	bool UsePNG = false;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture", meta = (InlineEditConditionToggle))
+  bool bCallbackOnCapture = true;
 
-	UPROPERTY(BlueprintReadWrite, VisibleAnywhere, meta=(IsBindableEvent="True"), Category="Capture")
-	FCallbackDelegate CaptureCallBack;
+  // If not UsePNG, JPEG format is used (For Non-Color purposes PNG is necessary, elsewise compression will mess with
+  // labels!)
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture", Meta = (EditCondition = "!bCallbackOnCapture"))
+  bool UsePNG = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture", Meta = (EditCondition="!bCallbackOnCapture"))
-	int NumDigits = 6;
-	// Captured Data Sub-Directory Name 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture", Meta = (EditCondition="!bCallbackOnCapture"))
-	FString SubDirectoryName = "";
+  UPROPERTY(BlueprintReadWrite, VisibleAnywhere, meta = (IsBindableEvent = "True"), Category = "Capture")
+  FCallbackDelegate CaptureCallBack;
 
-	UPROPERTY(EditAnywhere, Category="Logging")
-	bool VerboseLogging = false;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture", Meta = (EditCondition = "!bCallbackOnCapture"))
+  int NumDigits = 6;
+  // Captured Data Sub-Directory Name
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture", Meta = (EditCondition = "!bCallbackOnCapture"))
+  FString SubDirectoryName = "";
 
-protected:
-	// RenderRequest Queue
-	TQueue<FRenderRequestStruct*> RenderRequestQueue;
-
-	int ImgCounter = 0;
+  UPROPERTY(EditAnywhere, Category = "Logging")
+  bool VerboseLogging = false;
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+  // RenderRequest Queue
+  TQueue<FRenderRequestStruct*> RenderRequestQueue;
 
-	void SaveCapture(FRenderRequestStruct* NextRenderRequest);
+  int ImgCounter = 0;
 
-	// Creates an async task that will save the captured image to disk
-	void RunAsyncImageSaveTask(TArray64<uint8> Image, FString ImageName);
+protected:
+  // Called when the game starts or when spawned
+  virtual void BeginPlay() override;
 
-	//void SpawnSegmentationCaptureComponent(ASceneCapture2D* ColorCapture);
-	//void SetupSegmentationCaptureComponent(ASceneCapture2D* ColorCapture);
+  void SaveCapture(FRenderRequestStruct* NextRenderRequest);
 
-	FString ToStringWithLeadingZeros(int32 Integer, int32 MaxDigits);
+  // Creates an async task that will save the captured image to disk
+  void RunAsyncImageSaveTask(TArray64<uint8> Image, FString ImageName);
+
+  // void SpawnSegmentationCaptureComponent(ASceneCapture2D* ColorCapture);
+  // void SetupSegmentationCaptureComponent(ASceneCapture2D* ColorCapture);
+
+  FString ToStringWithLeadingZeros(int32 Integer, int32 MaxDigits);
 
 public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
+  // Called every frame
+  virtual void TickComponent(float DeltaTime, enum ELevelTick TickType,
+                             FActorComponentTickFunction* ThisTickFunction) override;
 
-	UFUNCTION(BlueprintCallable, Category = "ImageCapture")
-	void CaptureNonBlocking();
+  UFUNCTION(BlueprintCallable, Category = "ImageCapture")
+  void CaptureNonBlocking();
 };
-
 
 class AsyncSaveImageToDiskTask : public FNonAbandonableTask
 {
 public:
-	AsyncSaveImageToDiskTask(TArray64<uint8> Image, FString ImageName);
-	~AsyncSaveImageToDiskTask();
+  AsyncSaveImageToDiskTask(TArray64<uint8> Image, FString ImageName);
+  ~AsyncSaveImageToDiskTask();
 
-	// Required by UE4!
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(AsyncSaveImageToDiskTask, STATGROUP_ThreadPoolAsyncTasks);
-	}
+  // Required by UE4!
+  FORCEINLINE TStatId GetStatId() const
+  {
+    RETURN_QUICK_DECLARE_CYCLE_STAT(AsyncSaveImageToDiskTask, STATGROUP_ThreadPoolAsyncTasks);
+  }
 
 protected:
-	TArray<uint8> ImageCopy;
-	FString FileName = "";
+  TArray<uint8> ImageCopy;
+  FString       FileName = "";
 
 public:
-	void DoWork();
+  void DoWork();
 };

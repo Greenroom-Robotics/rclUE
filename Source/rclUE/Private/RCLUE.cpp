@@ -6,13 +6,9 @@
 
 #define LOCTEXT_NAMESPACE "FRCLUEModule"
 
-void FRCLUEModule::StartupModule()
-{
-}
+void FRCLUEModule::StartupModule() {}
 
-void FRCLUEModule::ShutdownModule()
-{
-}
+void FRCLUEModule::ShutdownModule() {}
 
 #undef LOCTEXT_NAMESPACE
 

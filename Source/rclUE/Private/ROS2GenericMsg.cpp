@@ -8,28 +8,28 @@ DEFINE_LOG_CATEGORY(LogROS2Msg);
 
 const rosidl_message_type_support_t* UROS2GenericMsg::GetTypeSupport() const
 {
-    checkNoEntry();
-    return nullptr;
+  checkNoEntry();
+  return nullptr;
 }
 
 void UROS2GenericMsg::Init()
 {
-    checkNoEntry();
+  checkNoEntry();
 }
 
 void UROS2GenericMsg::Fini()
 {
-    checkNoEntry();
+  checkNoEntry();
 }
 
 void* UROS2GenericMsg::Get()
 {
-    checkNoEntry();
-    return nullptr;
+  checkNoEntry();
+  return nullptr;
 }
 
 FString UROS2GenericMsg::ToString() const
 {
-    checkNoEntry();
-    return FString();
+  checkNoEntry();
+  return FString();
 }

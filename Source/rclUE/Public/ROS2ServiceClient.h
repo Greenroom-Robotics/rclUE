@@ -20,52 +20,51 @@ DECLARE_DELEGATE_OneParam(FServiceClientCallback, UROS2GenericSrv* /*Service*/);
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class RCLUE_API UROS2ServiceClient : public UActorComponent
 {
-    GENERATED_BODY()
+  GENERATED_BODY()
 
 public:
-    UROS2ServiceClient();
+  UROS2ServiceClient();
 
 public:
-    UFUNCTION(BlueprintCallable)
-    void Init(UROS2QoS QoS);
+  UFUNCTION(BlueprintCallable)
+  void Init(UROS2QoS QoS);
 
-    UFUNCTION(BlueprintCallable)
-    void InitializeService();
+  UFUNCTION(BlueprintCallable)
+  void InitializeService();
 
-    UFUNCTION(BlueprintCallable)
-    void UpdateAndSendRequest();
+  UFUNCTION(BlueprintCallable)
+  void UpdateAndSendRequest();
 
-    UFUNCTION()
-    virtual void Destroy();
+  UFUNCTION()
+  virtual void Destroy();
 
-    // this information is redundant with Topic, but it's used to initialize it
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    FString ServiceName;
+  // this information is redundant with Topic, but it's used to initialize it
+  UPROPERTY(EditAnywhere, BlueprintReadWrite)
+  FString ServiceName;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    TSubclassOf<UROS2GenericSrv> SrvClass;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite)
+  TSubclassOf<UROS2GenericSrv> SrvClass;
 
-    // used to pass data for the request
-    FServiceClientCallback RequestDelegate;
+  // used to pass data for the request
+  FServiceClientCallback RequestDelegate;
 
-    // used to receive the answer
-    FServiceClientCallback AnswerDelegate;
+  // used to receive the answer
+  FServiceClientCallback AnswerDelegate;
 
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+  UROS2State State = UROS2State::Created;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    UROS2State State = UROS2State::Created;
+  rcl_client_t client;
 
-    rcl_client_t client;
+  UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+  UROS2GenericSrv* Service;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-    UROS2GenericSrv* Service;
-
-    bool Ready;
+  bool Ready;
 
 protected:
-    UFUNCTION()
-    void SendRequest();
+  UFUNCTION()
+  void SendRequest();
 
-    const void* req;
-    const void* res;
+  const void* req;
+  const void* res;
 };

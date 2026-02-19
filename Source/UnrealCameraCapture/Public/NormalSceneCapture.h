@@ -10,20 +10,21 @@ DECLARE_LOG_CATEGORY_EXTERN(LogNormalSceneCapture, Log, All);
 UCLASS(ClassGroup = (Custom), Blueprintable, meta = (BlueprintSpawnableComponent))
 class UNREALCAMERACAPTURE_API UNormalSceneCapture : public USceneCaptureComponent2D
 {
-	GENERATED_UCLASS_BODY()
+  GENERATED_UCLASS_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
-	int FrameWidth = 640;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Capture")
-	int FrameHeight = 480;
-	
-	UPROPERTY(EditAnywhere, Category="Logging")
-	bool VerboseLogging = false;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture")
+  int FrameWidth = 640;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture")
+  int FrameHeight = 480;
 
-	// PostProcessMaterial used for segmentation
-	UPROPERTY(EditAnywhere, Category="Capture")
-	UMaterial* PostProcessMaterial = nullptr;
+  UPROPERTY(EditAnywhere, Category = "Logging")
+  bool VerboseLogging = false;
+
+  // PostProcessMaterial used for segmentation
+  UPROPERTY(EditAnywhere, Category = "Capture")
+  UMaterial* PostProcessMaterial = nullptr;
+
 protected:
-	virtual void BeginPlay() override;
+  virtual void BeginPlay() override;
 };

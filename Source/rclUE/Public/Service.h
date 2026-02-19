@@ -10,22 +10,22 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FServiceCallback, UROS2GenericSrv*, InService 
 USTRUCT(Blueprintable)
 struct RCLUE_API FService
 {
-	GENERATED_BODY()
+  GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FString ServiceName;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite)
+  FString ServiceName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<UROS2GenericSrv> ServiceType;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite)
+  TSubclassOf<UROS2GenericSrv> ServiceType;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UROS2GenericSrv* Service = nullptr;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite)
+  UROS2GenericSrv* Service = nullptr;
 
-	rcl_service_t rcl_service;
+  rcl_service_t rcl_service;
 
-	FServiceCallback Callback;
+  FServiceCallback Callback;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool Ready = false;
+  UPROPERTY(EditAnywhere, BlueprintReadWrite)
+  bool Ready = false;
 };

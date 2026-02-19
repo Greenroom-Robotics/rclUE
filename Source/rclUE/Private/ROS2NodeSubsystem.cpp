@@ -17,458 +17,467 @@ DEFINE_LOG_CATEGORY(LogROS2NodeSubsystem);
 
 UROS2Subsystem* UROS2NodeSubsystem::ROSSubsystem()
 {
-    return GetGameInstance()->GetSubsystem<UROS2Subsystem>();
+  return GetGameInstance()->GetSubsystem<UROS2Subsystem>();
 }
 
 // TODO Move the rclc stuff to Subsystem
 void UROS2NodeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-    Collection.InitializeDependency<UROS2Subsystem>();
-    Super::Initialize(Collection);
-    
-    _rcl_node = rcl_get_zero_initialized_node();
+  Collection.InitializeDependency<UROS2Subsystem>();
+  Super::Initialize(Collection);
 
-    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Initialize")
+  _rcl_node = rcl_get_zero_initialized_node();
 
-    static const TCHAR* Section = TEXT("/Script/rclUE");
+  TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Initialize")
 
-    // Read from Game ini (typical for gameplay-facing settings).
-    FString ConfigName;
-    FString ConfigNamespace;
-    GConfig->GetString(Section, TEXT("Name"), ConfigName, GGameIni);
-    GConfig->GetString(Section, TEXT("Namespace"), ConfigNamespace, GGameIni);
+  static const TCHAR* Section = TEXT("/Script/rclUE");
 
-    ConfigName = ConfigName.TrimStartAndEnd();
-    ConfigNamespace = ConfigNamespace.TrimStartAndEnd();
-    
-    if (!ConfigName.IsEmpty())
-    {
-        Name = ConfigName;
-    }
-    
-    if (!ConfigNamespace.IsEmpty())
-    {
-        Namespace = ConfigNamespace;
-    }
-    
-    Support = GetGameInstance()->GetSubsystem<UROS2Subsystem>()->GetSupport();
+  // Read from Game ini (typical for gameplay-facing settings).
+  FString ConfigName;
+  FString ConfigNamespace;
+  GConfig->GetString(Section, TEXT("Name"), ConfigName, GGameIni);
+  GConfig->GetString(Section, TEXT("Namespace"), ConfigNamespace, GGameIni);
 
-    FScopeLock lock(GetMutex());
-    rcutils_reset_error();
+  ConfigName = ConfigName.TrimStartAndEnd();
+  ConfigNamespace = ConfigNamespace.TrimStartAndEnd();
 
-    rcl_node_options_t node_ops = rcl_node_get_default_options();
-    node_ops.allocator = ROSSubsystem()->Allocator();
-    RCSOFTCHECK(rclc_node_init_with_options(GetRCLNode(), StringCast<ANSICHAR>(*Name).Get(),
-        StringCast<ANSICHAR>(*Namespace).Get(), &Support->Get(), &node_ops));
+  if (!ConfigName.IsEmpty())
+  {
+    Name = ConfigName;
+  }
 
-    UE_LOG(LogROS2NodeSubsystem, Display, TEXT("Node started with name '%s'"), *Name);
+  if (!ConfigNamespace.IsEmpty())
+  {
+    Namespace = ConfigNamespace;
+  }
 
-    State = UROS2State::Initialized;
+  Support = GetGameInstance()->GetSubsystem<UROS2Subsystem>()->GetSupport();
+
+  FScopeLock lock(GetMutex());
+  rcutils_reset_error();
+
+  rcl_node_options_t node_ops = rcl_node_get_default_options();
+  node_ops.allocator = ROSSubsystem()->Allocator();
+  RCSOFTCHECK(rclc_node_init_with_options(GetRCLNode(), StringCast<ANSICHAR>(*Name).Get(),
+                                          StringCast<ANSICHAR>(*Namespace).Get(), &Support->Get(), &node_ops));
+
+  UE_LOG(LogROS2NodeSubsystem, Display, TEXT("Node started with name '%s'"), *Name);
+
+  State = UROS2State::Initialized;
 }
 
 void UROS2NodeSubsystem::Deinitialize()
 {
-    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Deinitialize")
-    UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Bring Down start"), *GetName());
+  TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::Deinitialize")
+  UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Bring Down start"), *GetName());
 
-    // Mark state early to prevent Tick/SpinSome from running during teardown
-    State = UROS2State::Created;
+  // Mark state early to prevent Tick/SpinSome from running during teardown
+  State = UROS2State::Created;
 
-    Subscribers.Empty();
+  Subscribers.Empty();
 
-    for (auto& s : Services)
-    {
-        RCSOFTCHECK(rcl_service_fini(&s.rcl_service, GetRCLNode()));
-    }
+  for (auto& s : Services)
+  {
+    RCSOFTCHECK(rcl_service_fini(&s.rcl_service, GetRCLNode()));
+  }
 
-    Services.Empty();
-    Publishers.Empty();
-    Clients.Empty();
-    ActionClients.Empty();
-    ActionServers.Empty();
+  Services.Empty();
+  Publishers.Empty();
+  Clients.Empty();
+  ActionClients.Empty();
+  ActionServers.Empty();
 
-    RCSOFTCHECK(rcl_wait_set_fini(&wait_set));
+  RCSOFTCHECK(rcl_wait_set_fini(&wait_set));
 
-    UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Bring Down - rcl_node_fini"), *GetName());
-    RCSOFTCHECK(rcl_node_fini(GetRCLNode()));
-    UE_LOG(LogROS2NodeSubsystem, Display, TEXT("[%s] Node destroyed"), *GetName());
+  UE_LOG(LogROS2NodeSubsystem, Verbose, TEXT("[%s] Bring Down - rcl_node_fini"), *GetName());
+  RCSOFTCHECK(rcl_node_fini(GetRCLNode()));
+  UE_LOG(LogROS2NodeSubsystem, Display, TEXT("[%s] Node destroyed"), *GetName());
 
-    Super::Deinitialize();
+  Super::Deinitialize();
 }
 
 void UROS2NodeSubsystem::Tick(float DeltaTime)
 {
-    if (State != UROS2State::Initialized)
-    {
-        return;
-    }
+  if (State != UROS2State::Initialized)
+  {
+    return;
+  }
 
-    if (Subscribers.Num() > 0 || Clients.Num() > 0 || Services.Num() > 0)
-    {
-        SpinSome();
-    }
+  if (Subscribers.Num() > 0 || Clients.Num() > 0 || Services.Num() > 0)
+  {
+    SpinSome();
+  }
 }
 
 bool UROS2NodeSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
-    return true;    // TODO: If client/server, this should only be created on the server.
+  return true; // TODO: If client/server, this should only be created on the server.
 }
 
 bool UROS2NodeSubsystem::IsTickable() const
 {
-    return true;
+  return true;
 }
 
 bool UROS2NodeSubsystem::IsTickableWhenPaused() const
 {
-    return false;
+  return false;
 }
 
 bool UROS2NodeSubsystem::IsTickableInEditor() const
 {
-    return false;
+  return false;
 }
 
 TStatId UROS2NodeSubsystem::GetStatId() const
 {
-    RETURN_QUICK_DECLARE_CYCLE_STAT(UROS2NodeSubsystem, STATGROUP_Tickables);
+  RETURN_QUICK_DECLARE_CYCLE_STAT(UROS2NodeSubsystem, STATGROUP_Tickables);
 }
 
 void UROS2NodeSubsystem::AddSubscriber(UROS2Subscriber* Subscriber)
 {
-    if (!IsValid(Subscriber))
-    {
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Invalid subscriber '%s' provided (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
-        return;
-    }
+  if (!IsValid(Subscriber))
+  {
+    UE_LOG(LogROS2NodeSubsystem, Error,
+           TEXT("[%s] Invalid subscriber '%s' provided (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
+    return;
+  }
 
-    if (State != UROS2State::Initialized) {
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Tried to add subscriber '%s' to uninitialised node (%s)"), *GetName(), *Subscriber->GetName(), *__LOG_INFO__);
-        return;
-    }
+  if (State != UROS2State::Initialized)
+  {
+    UE_LOG(LogROS2NodeSubsystem, Error,
+           TEXT("[%s] Tried to add subscriber '%s' to uninitialised node (%s)"), *GetName(), *Subscriber->GetName(),
+                *__LOG_INFO__);
+    return;
+  }
 
-    if (!Subscribers.Contains(Subscriber))
+  if (!Subscribers.Contains(Subscriber))
+  {
+    if (!Subscriber->IsRegistered())
     {
-        if (!Subscriber->IsRegistered())
-        {
-            Subscriber->RegisterComponent();
-        }
-        Subscribers.Add(Subscriber);
+      Subscriber->RegisterComponent();
     }
-    else
-    {
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Attempt to re-add subscriber %s (%s)"), *Name, *Subscriber->GetName(), *__LOG_INFO__);
-    }
+    Subscribers.Add(Subscriber);
+  }
+  else
+  {
+    UE_LOG(LogROS2NodeSubsystem, Error,
+           TEXT("[%s] Attempt to re-add subscriber %s (%s)"), *Name, *Subscriber->GetName(), *__LOG_INFO__);
+  }
 }
 
-void UROS2NodeSubsystem::AddServiceServer(const FString& ServiceName,
-                                 const TSubclassOf<UROS2GenericSrv> SrvClass,
-                                 const FServiceCallback& Callback)
+void UROS2NodeSubsystem::AddServiceServer(const FString& ServiceName, const TSubclassOf<UROS2GenericSrv> SrvClass,
+                                          const FServiceCallback& Callback)
 {
-    check(State == UROS2State::Initialized);
+  check(State == UROS2State::Initialized);
 
-    if (!Callback.IsBound())
-    {
-        UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] Callback is not set (%s)"), *GetName(), *__LOG_INFO__);
-    }
+  if (!Callback.IsBound())
+  {
+    UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] Callback is not set (%s)"), *GetName(), *__LOG_INFO__);
+  }
 
-    UROS2GenericSrv* Service = NewObject<UROS2GenericSrv>(this, SrvClass);
-    Service->Init();
+  UROS2GenericSrv* Service = NewObject<UROS2GenericSrv>(this, SrvClass);
+  Service->Init();
 
-    FService NewSrv;
-    NewSrv.ServiceName = ServiceName;
-    NewSrv.ServiceType = SrvClass;
-    NewSrv.Service = Service;
-    NewSrv.Callback = Callback;
-    NewSrv.Ready = false;
+  FService NewSrv;
+  NewSrv.ServiceName = ServiceName;
+  NewSrv.ServiceType = SrvClass;
+  NewSrv.Service = Service;
+  NewSrv.Callback = Callback;
+  NewSrv.Ready = false;
 
-    FScopeLock lock(GetMutex());
+  FScopeLock lock(GetMutex());
 
-    NewSrv.rcl_service = rcl_get_zero_initialized_service();
-    const rosidl_service_type_support_t* type_support = Service->GetTypeSupport();
-    rcl_service_options_t srv_opt = rcl_service_get_default_options();
-    srv_opt.allocator = ROSSubsystem()->Allocator();
-    RCSOFTCHECK(rcl_service_init(&NewSrv.rcl_service, GetRCLNode(), type_support, StringCast<ANSICHAR>(*ServiceName).Get(), &srv_opt));
+  NewSrv.rcl_service = rcl_get_zero_initialized_service();
+  const rosidl_service_type_support_t* type_support = Service->GetTypeSupport();
+  rcl_service_options_t                srv_opt = rcl_service_get_default_options();
+  srv_opt.allocator = ROSSubsystem()->Allocator();
+  RCSOFTCHECK(rcl_service_init(&NewSrv.rcl_service, GetRCLNode(), type_support,
+                               StringCast<ANSICHAR>(*ServiceName).Get(), &srv_opt));
 
-    Services.Emplace(MoveTemp(NewSrv));
+  Services.Emplace(MoveTemp(NewSrv));
 
-    InvalidateWaitSet();
+  InvalidateWaitSet();
 }
 
 void UROS2NodeSubsystem::AddPublisher(UROS2Publisher* InPublisher)
 {
-    if (!IsValid(InPublisher))
-    {
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Invalid publisher '%s' provided (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
-        return;
-    }
+  if (!IsValid(InPublisher))
+  {
+    UE_LOG(LogROS2NodeSubsystem, Error,
+           TEXT("[%s] Invalid publisher '%s' provided (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
+    return;
+  }
 
-    if (State != UROS2State::Initialized) {
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Tried to add publisher '%s' to uninitialised node (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
-        return;
-    }
+  if (State != UROS2State::Initialized)
+  {
+    UE_LOG(LogROS2NodeSubsystem, Error,
+           TEXT("[%s] Tried to add publisher '%s' to uninitialised node (%s)"), *GetName(), *InPublisher->GetName(),
+                *__LOG_INFO__);
+    return;
+  }
 
-    if (!Publishers.Contains(InPublisher))
+  if (!Publishers.Contains(InPublisher))
+  {
+    if (!InPublisher->IsRegistered())
     {
-        if (!InPublisher->IsRegistered())
-        {
-            InPublisher->RegisterComponent();
-        }
-        Publishers.Add(InPublisher);
+      InPublisher->RegisterComponent();
     }
-    else
-    {
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] Attempt to re-add publisher '%s' (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
-    }
+    Publishers.Add(InPublisher);
+  }
+  else
+  {
+    UE_LOG(LogROS2NodeSubsystem, Error,
+           TEXT("[%s] Attempt to re-add publisher '%s' (%s)"), *GetName(), *InPublisher->GetName(), *__LOG_INFO__);
+  }
 }
 
 void UROS2NodeSubsystem::AddServiceClient(UROS2ServiceClient* InClient)
 {
-    check(IsValid(InClient));
+  check(IsValid(InClient));
 
-    if (!InClient->RequestDelegate.IsBound())
-    {
-        UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] RequestDelegate is not set (%s)"), *GetName(), *__LOG_INFO__);
-    }
+  if (!InClient->RequestDelegate.IsBound())
+  {
+    UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] RequestDelegate is not set (%s)"), *GetName(), *__LOG_INFO__);
+  }
 
-    if (!InClient->AnswerDelegate.IsBound())
-    {
-        UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] AnswerDelegate is not set (%s)"), *GetName(), *__LOG_INFO__);
-    }
+  if (!InClient->AnswerDelegate.IsBound())
+  {
+    UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] AnswerDelegate is not set (%s)"), *GetName(), *__LOG_INFO__);
+  }
 
-    if (false == Clients.Contains(InClient))
-    {
-        // InClient->ROSNode = this;
-        InClient->Init(UROS2QoS::Services);
-        Clients.Add(InClient);
-    }
-    else
-    {
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] ServiceClient is re-added (%s)"), *GetName(), *__LOG_INFO__);
-    }
+  if (false == Clients.Contains(InClient))
+  {
+    // InClient->ROSNode = this;
+    InClient->Init(UROS2QoS::Services);
+    Clients.Add(InClient);
+  }
+  else
+  {
+    UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] ServiceClient is re-added (%s)"), *GetName(), *__LOG_INFO__);
+  }
 }
 
 void UROS2NodeSubsystem::AddActionClient(UROS2ActionClient* InActionClient)
 {
-    check(IsValid(InActionClient));
+  check(IsValid(InActionClient));
 
-    if (false == ActionClients.Contains(InActionClient))
-    {
-        InActionClient->Init(UROS2QoS::Default);
-        ActionClients.Add(InActionClient);
-    }
-    else
-    {
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] ActionClient is re-added (%s)"), *GetName(), *__LOG_INFO__);
-    }
+  if (false == ActionClients.Contains(InActionClient))
+  {
+    InActionClient->Init(UROS2QoS::Default);
+    ActionClients.Add(InActionClient);
+  }
+  else
+  {
+    UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] ActionClient is re-added (%s)"), *GetName(), *__LOG_INFO__);
+  }
 }
 
 void UROS2NodeSubsystem::AddActionServer(UROS2ActionServer* InActionServer)
 {
-    check(IsValid(InActionServer));
+  check(IsValid(InActionServer));
 
-    if (false == ActionServers.Contains(InActionServer))
-    {
-        InActionServer->Init(UROS2QoS::Default);
-        ActionServers.Add(InActionServer);
-    }
-    else
-    {
-        UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] ActionServer is re-added (%s)"), *GetName(), *__LOG_INFO__);
-    }
+  if (false == ActionServers.Contains(InActionServer))
+  {
+    InActionServer->Init(UROS2QoS::Default);
+    ActionServers.Add(InActionServer);
+  }
+  else
+  {
+    UE_LOG(LogROS2NodeSubsystem, Error, TEXT("[%s] ActionServer is re-added (%s)"), *GetName(), *__LOG_INFO__);
+  }
 }
 
 void UROS2NodeSubsystem::HandleSubscribers()
 {
-    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::HandleSubscribers")
+  TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::HandleSubscribers")
 
-    TArray<UROS2Subscriber*> WaitSetSubscribers;
+  TArray<UROS2Subscriber*> WaitSetSubscribers;
 
-    for (auto i = 0; i < wait_set.size_of_subscriptions; i++)
+  for (auto i = 0; i < wait_set.size_of_subscriptions; i++)
+  {
+    if (wait_set.subscriptions[i])
     {
-        if (wait_set.subscriptions[i])
+      const rcl_subscription_t* currentSub = wait_set.subscriptions[i];
+      for (auto& s : Subscribers)
+      {
+        if (&s->rcl_subscription == currentSub)
         {
-            const rcl_subscription_t* currentSub = wait_set.subscriptions[i];
-            for (auto& s : Subscribers)
-            {
-                if (&s->rcl_subscription == currentSub)
-                {
-                    WaitSetSubscribers.Add(s);
-                }
-            }
+          WaitSetSubscribers.Add(s);
         }
+      }
+    }
+  }
+
+  for (auto& s : WaitSetSubscribers)
+  {
+    void*              data = s->TopicMessage->Get();
+    rmw_message_info_t messageInfo;
+    rcl_ret_t          rc_take;
+
+    { // rcl_take may or may not be threadsafe. Comments in RCL indicate they don't even know...
+      FScopeLock lock(GetMutex());
+      rc_take = rcl_take(&s->rcl_subscription, data, &messageInfo, nullptr);
     }
 
-    for (auto& s : WaitSetSubscribers)
+    if (rc_take == RCL_RET_OK)
     {
-        void* data = s->TopicMessage->Get();
-        rmw_message_info_t messageInfo;
-        rcl_ret_t rc_take;
-
-        {  // rcl_take may or may not be threadsafe. Comments in RCL indicate they don't even know...
-            FScopeLock lock(GetMutex());
-            rc_take = rcl_take(&s->rcl_subscription, data, &messageInfo, nullptr);
-        }
-
-        if (rc_take == RCL_RET_OK) {
-            s->HandleMessage(s->TopicMessage);
-        } else if (rc_take == RCL_RET_SUBSCRIPTION_TAKE_FAILED) {
-            UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] Subscription take failed (%s)"), *GetName(), *__LOG_INFO__);
-        } else {
-            RCSOFTCHECK(rc_take);
-        }
+      s->HandleMessage(s->TopicMessage);
     }
+    else if (rc_take == RCL_RET_SUBSCRIPTION_TAKE_FAILED)
+    {
+      UE_LOG(LogROS2NodeSubsystem, Warning, TEXT("[%s] Subscription take failed (%s)"), *GetName(), *__LOG_INFO__);
+    }
+    else
+    {
+      RCSOFTCHECK(rc_take);
+    }
+  }
 }
 
 void UROS2NodeSubsystem::HandleServices()
 {
-    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::HandleServices")
-    for (auto i = 0; i < wait_set.size_of_services; i++)
+  TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::HandleServices")
+  for (auto i = 0; i < wait_set.size_of_services; i++)
+  {
+    if (wait_set.services[i])
     {
-        if (wait_set.services[i])
+      const rcl_service_t* currentService = wait_set.services[i];
+      for (auto& s : Services)
+      {
+        if (&s.rcl_service == currentService)
         {
-            const rcl_service_t* currentService = wait_set.services[i];
-            for (auto& s : Services)
-            {
-                if (&s.rcl_service == currentService)
-                {
-                    s.Ready = true;
-                }
-            }
+          s.Ready = true;
         }
+      }
     }
+  }
 
-    for (auto& s : Services)
+  for (auto& s : Services)
+  {
+    if (s.Ready == true)
     {
-        if (s.Ready == true)
-        {
-            rmw_service_info_t req_info;
-            void* data = s.Service->GetRequest();
-            RCSOFTCHECK(rcl_take_request_with_info(&s.rcl_service, &req_info, data));
+      rmw_service_info_t req_info;
+      void*              data = s.Service->GetRequest();
+      RCSOFTCHECK(rcl_take_request_with_info(&s.rcl_service, &req_info, data));
 
-            UE_LOG(LogROS2NodeSubsystem, Log, TEXT("[%s] Executing Service (%s)"), *GetName(), *__LOG_INFO__);
+      UE_LOG(LogROS2NodeSubsystem, Log, TEXT("[%s] Executing Service (%s)"), *GetName(), *__LOG_INFO__);
 
-            const FServiceCallback* SrvCallback = &s.Callback;
-            SrvCallback->ExecuteIfBound(s.Service);
+      const FServiceCallback* SrvCallback = &s.Callback;
+      SrvCallback->ExecuteIfBound(s.Service);
 
-            RCSOFTCHECK(rcl_send_response(&s.rcl_service, &req_info.request_id, s.Service->GetResponse()));
+      RCSOFTCHECK(rcl_send_response(&s.rcl_service, &req_info.request_id, s.Service->GetResponse()));
 
-            s.Ready = false;
-        }
+      s.Ready = false;
     }
+  }
 }
 
 void UROS2NodeSubsystem::HandleClients()
 {
-    for (auto i = 0; i < wait_set.size_of_clients; i++)
+  for (auto i = 0; i < wait_set.size_of_clients; i++)
+  {
+    if (wait_set.clients[i])
     {
-        if (wait_set.clients[i])
+      const rcl_client_t* current_client = wait_set.clients[i];
+      for (auto& c : Clients)
+      {
+        if (&c->client == current_client)
         {
-            const rcl_client_t* current_client = wait_set.clients[i];
-            for (auto& c : Clients)
-            {
-                if (&c->client == current_client)
-                {
-                    c->Ready = true;
-                }
-            }
+          c->Ready = true;
         }
+      }
     }
+  }
 
-    for (auto& c : Clients)
+  for (auto& c : Clients)
+  {
+    if (c->Ready == true)
     {
-        if (c->Ready == true)
-        {
-            rmw_service_info_t req_info;
-            void* data = c->Service->GetResponse();
-            RCSOFTCHECK(rcl_take_response_with_info(&c->client, &req_info, data));
+      rmw_service_info_t req_info;
+      void*              data = c->Service->GetResponse();
+      RCSOFTCHECK(rcl_take_response_with_info(&c->client, &req_info, data));
 
-            UE_LOG(LogROS2NodeSubsystem,
-                   Log,
-                   TEXT("[%s] Executing Answer Delegate for Service Client (%s)"),
-                   *GetName(),
-                   *__LOG_INFO__);
+      UE_LOG(LogROS2NodeSubsystem, Log,
+             TEXT("[%s] Executing Answer Delegate for Service Client (%s)"), *GetName(), *__LOG_INFO__);
 
-            const FServiceClientCallback* SrvClientCallback = &c->AnswerDelegate;
-            SrvClientCallback->ExecuteIfBound(c->Service);
+      const FServiceClientCallback* SrvClientCallback = &c->AnswerDelegate;
+      SrvClientCallback->ExecuteIfBound(c->Service);
 
-            c->Ready = false;
-        }
+      c->Ready = false;
     }
+  }
 }
 
-void UROS2NodeSubsystem::InvalidateWaitSet() {
-    if (rcl_wait_set_is_valid(&wait_set))
-    {
-        RCSOFTCHECK(rcl_wait_set_fini(&wait_set));
-    }
+void UROS2NodeSubsystem::InvalidateWaitSet()
+{
+  if (rcl_wait_set_is_valid(&wait_set))
+  {
+    RCSOFTCHECK(rcl_wait_set_fini(&wait_set));
+  }
 }
 
 void UROS2NodeSubsystem::SpinSome()
 {
-    TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::SpinSome")
+  TRACE_CPUPROFILER_EVENT_SCOPE_STR("UROS2NodeSubsystem::SpinSome")
+  {
+    FScopeLock lock(GetMutex());
+
+    if (!rcl_wait_set_is_valid(&wait_set))
     {
-        FScopeLock lock(GetMutex());
-
-        if (!rcl_wait_set_is_valid(&wait_set))
-        {
-            RCSOFTCHECK(rcl_wait_set_fini(&wait_set));
-            wait_set = rcl_get_zero_initialized_wait_set();
-            RCSOFTCHECK(rcl_wait_set_init(&wait_set,
-                                        Subscribers.Num() + ActionClients.Num() * 2,
-                                        NGuardConditions,
-                                        NTimers + ActionServers.Num(),
-                                        Clients.Num() + ActionClients.Num() * 3,
-                                        Services.Num() + ActionServers.Num() * 3,
-                                        NEvents,
-                                        &Support->Get().context,
-                                        ROSSubsystem()->Allocator()));
-        }
-
-        RCSOFTCHECK(rcl_wait_set_clear(&wait_set));
-
-        for (auto& s : Subscribers)
-        {
-            if (rcl_subscription_is_valid(&s->rcl_subscription)) {
-                RCSOFTCHECK(rcl_wait_set_add_subscription(&wait_set, &s->rcl_subscription, nullptr));
-            }
-        }
-
-        for (auto& c : Clients)
-        {
-            RCSOFTCHECK(rcl_wait_set_add_client(&wait_set, &c->client, nullptr));
-        }
-
-        for (auto& s : Services)
-        {
-            RCSOFTCHECK(rcl_wait_set_add_service(&wait_set, &s.rcl_service, nullptr));
-        }
-
-        for (auto& a : ActionClients)
-        {
-            RCSOFTCHECK(rcl_action_wait_set_add_action_client(&wait_set, &a->client, nullptr, nullptr));
-        }
-
-        for (auto& a : ActionServers)
-        {
-            RCSOFTCHECK(rcl_action_wait_set_add_action_server(&wait_set, &a->server, nullptr));
-        }
-
-        rcl_ret_t rc = rcl_wait(&wait_set, 0);
-        RCLC_UNUSED(rc);
+      RCSOFTCHECK(rcl_wait_set_fini(&wait_set));
+      wait_set = rcl_get_zero_initialized_wait_set();
+      RCSOFTCHECK(rcl_wait_set_init(&wait_set, Subscribers.Num() + ActionClients.Num() * 2, NGuardConditions,
+                                    NTimers + ActionServers.Num(), Clients.Num() + ActionClients.Num() * 3,
+                                    Services.Num() + ActionServers.Num() * 3, NEvents, &Support->Get().context,
+                                    ROSSubsystem()->Allocator()));
     }
 
-    HandleSubscribers();
-    HandleServices();
-    HandleClients();
+    RCSOFTCHECK(rcl_wait_set_clear(&wait_set));
 
-    for (auto& a : ActionServers)
+    for (auto& s : Subscribers)
     {
-        a->ProcessReady(&wait_set);
+      if (rcl_subscription_is_valid(&s->rcl_subscription))
+      {
+        RCSOFTCHECK(rcl_wait_set_add_subscription(&wait_set, &s->rcl_subscription, nullptr));
+      }
+    }
+
+    for (auto& c : Clients)
+    {
+      RCSOFTCHECK(rcl_wait_set_add_client(&wait_set, &c->client, nullptr));
+    }
+
+    for (auto& s : Services)
+    {
+      RCSOFTCHECK(rcl_wait_set_add_service(&wait_set, &s.rcl_service, nullptr));
     }
 
     for (auto& a : ActionClients)
     {
-        a->ProcessReady(&wait_set);
+      RCSOFTCHECK(rcl_action_wait_set_add_action_client(&wait_set, &a->client, nullptr, nullptr));
     }
+
+    for (auto& a : ActionServers)
+    {
+      RCSOFTCHECK(rcl_action_wait_set_add_action_server(&wait_set, &a->server, nullptr));
+    }
+
+    rcl_ret_t rc = rcl_wait(&wait_set, 0);
+    RCLC_UNUSED(rc);
+  }
+
+  HandleSubscribers();
+  HandleServices();
+  HandleClients();
+
+  for (auto& a : ActionServers)
+  {
+    a->ProcessReady(&wait_set);
+  }
+
+  for (auto& a : ActionClients)
+  {
+    a->ProcessReady(&wait_set);
+  }
 }
