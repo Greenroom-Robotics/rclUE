@@ -10,6 +10,56 @@
 
 DEFINE_LOG_CATEGORY(LogROS2ParameterSubsystem);
 
+void on_describe_parameters(const void* request_msg, void* response_msg, void* context)
+{
+  const auto* req  = static_cast<const rcl_interfaces__srv__DescribeParameters_Request*>(request_msg);
+  auto*       res  = static_cast<rcl_interfaces__srv__DescribeParameters_Response*>(response_msg);
+  auto*       self = static_cast<UROS2ParameterSubsystem*>(context);
+
+  const size_t count = req->names.size;
+
+  // Grow the descriptor sequence if this request has more names than the pre-allocated capacity.
+  if (res->descriptors.capacity < count)
+  {
+    rcl_interfaces__msg__ParameterDescriptor__Sequence__fini(&res->descriptors);
+    rcl_interfaces__msg__ParameterDescriptor__Sequence__init(&res->descriptors, count);
+  }
+  res->descriptors.size = count;
+
+  FScopeLock Lock(&self->Mutex);
+
+  for (size_t i = 0; i < count; ++i)
+  {
+    const char*                            NameRaw = req->names.data[i].data;
+    FString                                ParamName = StringCast<TCHAR>(NameRaw).Get();
+    rcl_interfaces__msg__ParameterDescriptor& Desc = res->descriptors.data[i];
+
+    rosidl_runtime_c__String__assign(&Desc.name, NameRaw);
+
+    const FROS2Parameter* Cached = self->ParametersCache.Find(ParamName);
+    if (Cached)
+    {
+      Desc.type = (uint8_t)ParameterType_LUT[Cached->Type];
+      rosidl_runtime_c__String__assign(&Desc.description,
+                                       StringCast<ANSICHAR>(*Cached->Description).Get());
+      rosidl_runtime_c__String__assign(&Desc.additional_constraints,
+                                       StringCast<ANSICHAR>(*Cached->AdditionalConstraints).Get());
+      Desc.read_only      = Cached->ReadOnly;
+      Desc.dynamic_typing = false;
+    }
+    else
+    {
+      Desc.type = 0;  // PARAMETER_NOT_SET
+      rosidl_runtime_c__String__assign(&Desc.description, "");
+      rosidl_runtime_c__String__assign(&Desc.additional_constraints, "");
+      Desc.read_only      = false;
+      Desc.dynamic_typing = false;
+    }
+  }
+
+  UE_LOG(LogROS2ParameterSubsystem, Verbose, TEXT("describe_parameters: described %zu parameter(s)"), count);
+}
+
 void on_set_parameters_atomically(const void* request_msg, void* response_msg, void* context)
 {
   const auto* req = static_cast<const rcl_interfaces__srv__SetParametersAtomically_Request*>(request_msg);
@@ -167,6 +217,43 @@ void UROS2ParameterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
            TEXT("set_parameters_atomically stub not found in executor handles — service will remain unimplemented"));
   }
 
+  // Replace describe_parameters callback — rclc_parameter stores descriptor strings in buffers with
+  // a hard capacity limit, truncating long additional_constraints values to empty. Reading from
+  // ParametersCache directly removes that limit.
+  rcl_interfaces__srv__DescribeParameters_Request__init(&describe_req);
+  rcl_interfaces__srv__DescribeParameters_Response__init(&describe_res);
+  rcl_interfaces__msg__ParameterDescriptor__Sequence__init(&describe_res.descriptors, 32);
+  describe_res.descriptors.size = 0;
+
+  bool bFoundDescribe = false;
+  for (size_t i = 0; i < executor.index; ++i)
+  {
+    rclc_executor_handle_t& Handle = executor.handles[i];
+    if (Handle.type != RCLC_SERVICE_WITH_CONTEXT || Handle.service == nullptr)
+    {
+      continue;
+    }
+    const char* SvcName = rcl_service_get_service_name(Handle.service);
+    if (SvcName && FString(SvcName).EndsWith(TEXT("describe_parameters")))
+    {
+      Handle.service_callback_with_context = on_describe_parameters;
+      Handle.callback_context              = this;
+      Handle.data                          = &describe_req;
+      Handle.data_response_msg             = &describe_res;
+      bFoundDescribe                       = true;
+      UE_LOG(LogROS2ParameterSubsystem, Display,
+             TEXT("Replaced describe_parameters callback to support long additional_constraints on '%s'"),
+             *NodeSubsystem->Name);
+      break;
+    }
+  }
+
+  if (!bFoundDescribe)
+  {
+    UE_LOG(LogROS2ParameterSubsystem, Warning,
+           TEXT("describe_parameters handle not found — additional_constraints may be truncated"));
+  }
+
   bIsInitialized = true;
   UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Initialised parameter server on node '%s'"), *NodeSubsystem->Name);
 }
@@ -188,6 +275,8 @@ void UROS2ParameterSubsystem::Deinitialize()
     rclc_executor_fini(&executor);
     rcl_interfaces__srv__SetParametersAtomically_Request__fini(&set_atomically_req);
     rcl_interfaces__srv__SetParametersAtomically_Response__fini(&set_atomically_res);
+    rcl_interfaces__srv__DescribeParameters_Request__fini(&describe_req);
+    rcl_interfaces__srv__DescribeParameters_Response__fini(&describe_res);
     rclc_parameter_server_fini(&param_server, NodeSubsystem->GetRCLNode());
     UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Destroyed parameter server on node '%s'"), *NodeSubsystem->Name);
   }

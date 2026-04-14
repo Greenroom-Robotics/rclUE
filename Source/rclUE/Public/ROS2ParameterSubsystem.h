@@ -6,6 +6,7 @@
 #include "rclc_parameter/rclc_parameter.h"
 
 #include <rcl_interfaces/rcl_interfaces/srv/set_parameters_atomically.h>
+#include <rcl_interfaces/rcl_interfaces/srv/describe_parameters.h>
 
 #include <CoreMinimal.h>
 #include <Tickable.h>
@@ -131,6 +132,8 @@ public:
   void UpdateParameter(const FROS2Parameter& Param);
 
   friend void on_set_parameters_atomically(const void*, void*, void*);
+  friend void on_describe_parameters(const void*, void*, void*);
+
 
 protected:
   TMap<FString, FROS2Parameter> ParametersCache;
@@ -142,4 +145,7 @@ protected:
 
   rcl_interfaces__srv__SetParametersAtomically_Request            set_atomically_req;
   rcl_interfaces__srv__SetParametersAtomically_Response           set_atomically_res;
+
+  rcl_interfaces__srv__DescribeParameters_Request                 describe_req;
+  rcl_interfaces__srv__DescribeParameters_Response                describe_res;
 };
