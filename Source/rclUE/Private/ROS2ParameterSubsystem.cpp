@@ -4,9 +4,61 @@
 #include "Async/Async.h"
 #include <type_traits>
 
+#include <rosidl_runtime_c/string_functions.h>
+
 #include "ROS2ParameterSubsystem.h"
 
 DEFINE_LOG_CATEGORY(LogROS2ParameterSubsystem);
+
+void on_set_parameters_atomically(const void* request_msg, void* response_msg, void* context)
+{
+  const auto* req = static_cast<const rcl_interfaces__srv__SetParametersAtomically_Request*>(request_msg);
+  auto*       res = static_cast<rcl_interfaces__srv__SetParametersAtomically_Response*>(response_msg);
+  auto*       self = static_cast<UROS2ParameterSubsystem*>(context);
+
+  res->result.successful = true;
+  rosidl_runtime_c__String__assign(&res->result.reason, "");
+
+  FScopeLock Lock(&self->Mutex);
+
+  for (size_t i = 0; i < req->parameters.size; ++i)
+  {
+    const rcl_interfaces__msg__Parameter& p = req->parameters.data[i];
+    const char*                           name = p.name.data;
+    rcl_ret_t                             ret = RCL_RET_OK;
+
+    switch (p.value.type)
+    {
+      case RCLC_PARAMETER_BOOL:
+        ret = rclc_parameter_set_bool(&self->param_server, name, p.value.bool_value);
+        break;
+      case RCLC_PARAMETER_INT:
+        ret = rclc_parameter_set_int(&self->param_server, name, p.value.integer_value);
+        break;
+      case RCLC_PARAMETER_DOUBLE:
+        ret = rclc_parameter_set_double(&self->param_server, name, p.value.double_value);
+        break;
+      default:
+        UE_LOG(LogROS2ParameterSubsystem, Warning, TEXT("set_parameters_atomically: unsupported type for '%s'"),
+               StringCast<TCHAR>(name).Get());
+        res->result.successful = false;
+        rosidl_runtime_c__String__assign(&res->result.reason, "Unsupported parameter type");
+        return;
+    }
+
+    if (ret != RCL_RET_OK)
+    {
+      UE_LOG(LogROS2ParameterSubsystem, Warning, TEXT("set_parameters_atomically: failed to set '%s' (ret=%d)"),
+             StringCast<TCHAR>(name).Get(), (int)ret);
+      res->result.successful = false;
+      rosidl_runtime_c__String__assign(&res->result.reason, "Failed to set parameter");
+      return;
+    }
+  }
+
+  UE_LOG(LogROS2ParameterSubsystem, Verbose, TEXT("set_parameters_atomically: set %zu parameter(s) successfully"),
+         req->parameters.size);
+}
 
 bool on_parameter_changed(const Parameter* old_param, const Parameter* new_param, void* context)
 {
@@ -81,6 +133,40 @@ void UROS2ParameterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
                      R2Subsystem->AllocatorPtr());
   rclc_executor_add_parameter_server_with_context(&executor, &param_server, on_parameter_changed, this);
 
+  // rclc_parameter (Kilted, RCLC_EXECUTOR_PARAMETER_SERVER_HANDLES == 6) registers
+  // set_parameters_atomically as a stub that returns "Unimplemented service".
+  // Replace that stub's callback in-place so requests are handled by our implementation.
+  rcl_interfaces__srv__SetParametersAtomically_Request__init(&set_atomically_req);
+  rcl_interfaces__srv__SetParametersAtomically_Response__init(&set_atomically_res);
+
+  bool bFoundStub = false;
+  for (size_t i = 0; i < executor.index; ++i)
+  {
+    rclc_executor_handle_t& Handle = executor.handles[i];
+    if (Handle.type != RCLC_SERVICE_WITH_CONTEXT || Handle.service == nullptr)
+    {
+      continue;
+    }
+    const char* SvcName = rcl_service_get_service_name(Handle.service);
+    if (SvcName && FString(SvcName).EndsWith(TEXT("set_parameters_atomically")))
+    {
+      Handle.service_callback_with_context = on_set_parameters_atomically;
+      Handle.callback_context              = this;
+      Handle.data                          = &set_atomically_req;
+      Handle.data_response_msg             = &set_atomically_res;
+      bFoundStub                           = true;
+      UE_LOG(LogROS2ParameterSubsystem, Display,
+             TEXT("Replaced set_parameters_atomically stub callback on '%s'"), *NodeSubsystem->Name);
+      break;
+    }
+  }
+
+  if (!bFoundStub)
+  {
+    UE_LOG(LogROS2ParameterSubsystem, Warning,
+           TEXT("set_parameters_atomically stub not found in executor handles — service will remain unimplemented"));
+  }
+
   bIsInitialized = true;
   UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Initialised parameter server on node '%s'"), *NodeSubsystem->Name);
 }
@@ -100,6 +186,8 @@ void UROS2ParameterSubsystem::Deinitialize()
   if (bNodeValid)
   {
     rclc_executor_fini(&executor);
+    rcl_interfaces__srv__SetParametersAtomically_Request__fini(&set_atomically_req);
+    rcl_interfaces__srv__SetParametersAtomically_Response__fini(&set_atomically_res);
     rclc_parameter_server_fini(&param_server, NodeSubsystem->GetRCLNode());
     UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Destroyed parameter server on node '%s'"), *NodeSubsystem->Name);
   }
