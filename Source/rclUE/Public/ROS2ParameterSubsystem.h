@@ -5,6 +5,8 @@
 #include "rclcUtilities.h"
 #include "rclc_parameter/rclc_parameter.h"
 
+#include <rcl_interfaces/rcl_interfaces/srv/set_parameters_atomically.h>
+
 #include <CoreMinimal.h>
 #include <Tickable.h>
 #include <Misc/TVariant.h>
@@ -128,6 +130,8 @@ public:
   UFUNCTION(BlueprintCallable)
   void UpdateParameter(const FROS2Parameter& Param);
 
+  friend void on_set_parameters_atomically(const void*, void*, void*);
+
 protected:
   TMap<FString, FROS2Parameter> ParametersCache;
   FCriticalSection              Mutex;
@@ -135,4 +139,7 @@ protected:
   bool                    bIsInitialized = false;
   rclc_executor_t         executor;
   rclc_parameter_server_t param_server;
+
+  rcl_interfaces__srv__SetParametersAtomically_Request            set_atomically_req;
+  rcl_interfaces__srv__SetParametersAtomically_Response           set_atomically_res;
 };
