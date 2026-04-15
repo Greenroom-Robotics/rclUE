@@ -143,6 +143,12 @@ protected:
   rclc_executor_t         executor;
   rclc_parameter_server_t param_server;
 
+  // When ParameterNodeNamespace is set in DefaultGame.ini ([/Script/rclUE]),
+  // the parameter server is initialised on this dedicated node so that its
+  // service paths are namespaced independently of the shared subscriber node.
+  rcl_node_t _param_rcl_node;
+  bool       bHasSeparateParamNode = false;
+
   rcl_interfaces__srv__SetParametersAtomically_Request            set_atomically_req;
   rcl_interfaces__srv__SetParametersAtomically_Response           set_atomically_res;
 

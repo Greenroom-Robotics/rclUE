@@ -1,5 +1,6 @@
 #include "ROS2NodeSubsystem.h"
 #include "Engine/GameInstance.h"
+#include "Misc/ConfigCacheIni.h"
 
 #include "Async/Async.h"
 #include <type_traits>
@@ -175,9 +176,45 @@ void UROS2ParameterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
   Super::Initialize(Collection);
 
   UROS2NodeSubsystem* NodeSubsystem = GetGameInstance()->GetSubsystem<UROS2NodeSubsystem>();
-  rclc_parameter_server_init_default(&param_server, NodeSubsystem->GetRCLNode());
+  UROS2Subsystem*     R2Subsystem   = GetGameInstance()->GetSubsystem<UROS2Subsystem>();
 
-  UROS2Subsystem* R2Subsystem = GetGameInstance()->GetSubsystem<UROS2Subsystem>();
+  // If ParameterNodeNamespace is set in DefaultGame.ini ([/Script/rclUE]), create a dedicated
+  // node for the parameter server so its service paths are namespaced independently of the
+  // shared subscriber node (which keeps its own name/namespace for topic subscriptions).
+  rcl_node_t* ParamNodePtr = NodeSubsystem->GetRCLNode();
+
+  static const TCHAR* Section = TEXT("/Script/rclUE");
+  FString ParameterNodeNamespace;
+  GConfig->GetString(Section, TEXT("ParameterNodeNamespace"), ParameterNodeNamespace, GGameIni);
+  ParameterNodeNamespace = ParameterNodeNamespace.TrimStartAndEnd();
+
+  if (!ParameterNodeNamespace.IsEmpty())
+  {
+    _param_rcl_node        = rcl_get_zero_initialized_node();
+    rcl_node_options_t ops = rcl_node_get_default_options();
+    ops.allocator          = R2Subsystem->Allocator();
+    rcl_ret_t ret = rclc_node_init_with_options(
+      &_param_rcl_node,
+      StringCast<ANSICHAR>(*NodeSubsystem->Name).Get(),
+      StringCast<ANSICHAR>(*ParameterNodeNamespace).Get(),
+      &R2Subsystem->GetSupport()->Get(),
+      &ops);
+    if (ret == RCL_RET_OK)
+    {
+      bHasSeparateParamNode = true;
+      ParamNodePtr          = &_param_rcl_node;
+      UE_LOG(LogROS2ParameterSubsystem, Display,
+             TEXT("Created dedicated parameter node '/%s/%s' for parameter server"),
+             *ParameterNodeNamespace, *NodeSubsystem->Name);
+    }
+    else
+    {
+      UE_LOG(LogROS2ParameterSubsystem, Error,
+             TEXT("Failed to create dedicated parameter node — falling back to shared node"));
+    }
+  }
+
+  rclc_parameter_server_init_default(&param_server, ParamNodePtr);
 
   rclc_executor_init(&executor, &R2Subsystem->GetSupport()->Get().context, RCLC_EXECUTOR_PARAMETER_SERVER_HANDLES + 1,
                      R2Subsystem->AllocatorPtr());
@@ -277,7 +314,16 @@ void UROS2ParameterSubsystem::Deinitialize()
     rcl_interfaces__srv__SetParametersAtomically_Response__fini(&set_atomically_res);
     rcl_interfaces__srv__DescribeParameters_Request__fini(&describe_req);
     rcl_interfaces__srv__DescribeParameters_Response__fini(&describe_res);
-    rclc_parameter_server_fini(&param_server, NodeSubsystem->GetRCLNode());
+
+    rcl_node_t* ParamNodePtr = bHasSeparateParamNode ? &_param_rcl_node : NodeSubsystem->GetRCLNode();
+    rclc_parameter_server_fini(&param_server, ParamNodePtr);
+
+    if (bHasSeparateParamNode)
+    {
+      RCSOFTCHECK(rcl_node_fini(&_param_rcl_node));
+      bHasSeparateParamNode = false;
+    }
+
     UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Destroyed parameter server on node '%s'"), *NodeSubsystem->Name);
   }
   else
