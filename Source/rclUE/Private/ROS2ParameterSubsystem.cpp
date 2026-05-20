@@ -214,7 +214,25 @@ void UROS2ParameterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     }
   }
 
-  rclc_parameter_server_init_default(&param_server, ParamNodePtr);
+  int32 ParameterServerMaxParameters = 64;
+  GConfig->GetInt(Section, TEXT("ParameterServerMaxParameters"), ParameterServerMaxParameters, GGameIni);
+  ParameterServerMaxParameters = FMath::Max(1, ParameterServerMaxParameters);
+
+  rclc_parameter_options_t ParameterOptions;
+  ParameterOptions.notify_changed_over_dds = true;
+  ParameterOptions.max_params = static_cast<size_t>(ParameterServerMaxParameters);
+  ParameterOptions.allow_undeclared_parameters = false;
+  ParameterOptions.low_mem_mode = false;
+
+  rcl_ret_t ParameterServerRet =
+    rclc_parameter_server_init_with_option(&param_server, ParamNodePtr, &ParameterOptions);
+  if (ParameterServerRet != RCL_RET_OK)
+  {
+    UE_LOG(LogROS2ParameterSubsystem, Error,
+           TEXT("Failed to initialise parameter server with capacity %d (ret=%d)"),
+           ParameterServerMaxParameters, (int)ParameterServerRet);
+    return;
+  }
 
   rclc_executor_init(&executor, &R2Subsystem->GetSupport()->Get().context, RCLC_EXECUTOR_PARAMETER_SERVER_HANDLES + 1,
                      R2Subsystem->AllocatorPtr());
@@ -337,13 +355,40 @@ void UROS2ParameterSubsystem::Deinitialize()
 void UROS2ParameterSubsystem::AddParameter(const FROS2Parameter& Parameter)
 {
   FScopeLock Lock(&Mutex);
+
+  const auto* ParameterType = ParameterType_LUT.Find(Parameter.Type);
+  if (ParameterType == nullptr)
+  {
+    UE_LOG(LogROS2ParameterSubsystem, Error, TEXT("Unsupported param type for '%s'"), *Parameter.Name);
+    return;
+  }
+
+  const auto ParameterName = StringCast<ANSICHAR>(*Parameter.Name);
+  rcl_ret_t  Ret = rclc_add_parameter(&param_server, ParameterName.Get(), *ParameterType);
+  if (Ret != RCL_RET_OK)
+  {
+    UE_LOG(LogROS2ParameterSubsystem, Error,
+           TEXT("Failed to add parameter '%s' to rclc parameter server (ret=%d)"), *Parameter.Name, (int)Ret);
+    return;
+  }
+
   ParametersCache.Add(Parameter.Name, Parameter);
 
-  rclc_add_parameter(&param_server, StringCast<ANSICHAR>(*Parameter.Name).Get(), ParameterType_LUT[Parameter.Type]);
-  rclc_add_parameter_description(&param_server, StringCast<ANSICHAR>(*Parameter.Name).Get(),
-                                 StringCast<ANSICHAR>(*Parameter.Description).Get(),
-                                 StringCast<ANSICHAR>(*Parameter.AdditionalConstraints).Get());
-  rclc_set_parameter_read_only(&param_server, StringCast<ANSICHAR>(*Parameter.Name).Get(), Parameter.ReadOnly);
+  Ret = rclc_add_parameter_description(&param_server, ParameterName.Get(),
+                                       StringCast<ANSICHAR>(*Parameter.Description).Get(),
+                                       StringCast<ANSICHAR>(*Parameter.AdditionalConstraints).Get());
+  if (Ret != RCL_RET_OK)
+  {
+    UE_LOG(LogROS2ParameterSubsystem, Warning,
+           TEXT("Failed to add description for parameter '%s' (ret=%d)"), *Parameter.Name, (int)Ret);
+  }
+
+  Ret = rclc_set_parameter_read_only(&param_server, ParameterName.Get(), Parameter.ReadOnly);
+  if (Ret != RCL_RET_OK)
+  {
+    UE_LOG(LogROS2ParameterSubsystem, Warning,
+           TEXT("Failed to set read-only flag for parameter '%s' (ret=%d)"), *Parameter.Name, (int)Ret);
+  }
   UE_LOG(LogROS2ParameterSubsystem, Display, TEXT("Added parameter '%s'"), *Parameter.Name);
 
   UpdateParameter(Parameter);
