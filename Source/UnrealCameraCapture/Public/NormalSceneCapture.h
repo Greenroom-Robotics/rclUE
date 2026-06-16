@@ -21,6 +21,13 @@ public:
   UPROPERTY(EditAnywhere, Category = "Logging")
   bool VerboseLogging = false;
 
+  // Temporal AA blends reprojected history into each frame, so captured pixels lag
+  // the game tick they are stamped with (measured ~4 frames via horizon-solve dt).
+  // Disable for cameras whose output feeds time-sensitive consumers (calibration,
+  // perception); the capture then falls back to spatial FXAA with motion blur off.
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture")
+  bool bEnableTemporalAA = true;
+
   // PostProcessMaterial used for segmentation
   UPROPERTY(EditAnywhere, Category = "Capture")
   UMaterial* PostProcessMaterial = nullptr;

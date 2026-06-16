@@ -39,7 +39,18 @@ void UNormalSceneCapture::BeginPlay()
 
   // Set Camera Properties
   CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
-  ShowFlags.SetTemporalAA(true);
+  if (bEnableTemporalAA)
+  {
+    ShowFlags.SetTemporalAA(true);
+  }
+  else
+  {
+    // The TemporalAA show flag gates both TAA and TSR; with it off the view falls
+    // back to spatial FXAA. Motion blur is also history-based, so it goes too.
+    ShowFlags.SetTemporalAA(false);
+    ShowFlags.SetMotionBlur(false);
+    UE_LOG(LogNormalSceneCapture, Log, TEXT("Temporal AA disabled for this capture (spatial FXAA)"));
+  }
   ShowFlags.SetLensFlares(true);
 
   // Assign PostProcess Material if assigned
