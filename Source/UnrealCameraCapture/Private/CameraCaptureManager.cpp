@@ -12,6 +12,8 @@
 #include "ImageUtils.h"
 #include "Modules/ModuleManager.h"
 #include "Misc/FileHelper.h"
+#include "HAL/PlatformFileManager.h"
+#include "GenericPlatform/GenericPlatformFile.h"
 
 DEFINE_LOG_CATEGORY(LogCameraCaptureManager);
 
@@ -76,13 +78,28 @@ void UCameraCaptureManagerComponent::SaveCapture(FRenderRequestStruct* NextRende
   IImageWrapperModule& ImageWrapperModule =
       FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 
+  // Base file path without extension; OutputDirectoryOverride / FileNamePrefix redirect it.
+  const FString baseDir = OutputDirectoryOverride.IsEmpty()
+                              ? FPaths::ProjectSavedDir() + SubDirectoryName
+                              : OutputDirectoryOverride;
+  const FString namePart = FileNamePrefix.IsEmpty()
+                               ? FString("img_") + ToStringWithLeadingZeros(ImgCounter, NumDigits)
+                               : FileNamePrefix + ToStringWithLeadingZeros(ImgCounter, NumDigits);
+  const FString baseFileName = FPaths::Combine(baseDir, namePart);
+
+  // FFileHelper::SaveArrayToFile does not create directories, so ensure the target exists.
+  IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+  if (!PlatformFile.DirectoryExists(*baseDir))
+  {
+    PlatformFile.CreateDirectoryTree(*baseDir);
+  }
+
   // Decide storing of data, either jpeg or png
   FString fileName = "";
   if (UsePNG)
   {
     // Generate image name
-    fileName =
-        FPaths::ProjectSavedDir() + SubDirectoryName + "/img" + "_" + ToStringWithLeadingZeros(ImgCounter, NumDigits);
+    fileName = baseFileName;
     fileName += ".png"; // Add file ending
 
     // Prepare data to be written to disk
@@ -96,8 +113,7 @@ void UCameraCaptureManagerComponent::SaveCapture(FRenderRequestStruct* NextRende
   else
   {
     // Generate image name
-    fileName =
-        FPaths::ProjectSavedDir() + SubDirectoryName + "/img" + "_" + ToStringWithLeadingZeros(ImgCounter, NumDigits);
+    fileName = baseFileName;
     fileName += ".jpeg"; // Add file ending
 
     // Prepare data to be written to disk
@@ -115,24 +131,24 @@ void UCameraCaptureManagerComponent::SaveCapture(FRenderRequestStruct* NextRende
   }
 }
 
-void UCameraCaptureManagerComponent::CaptureNonBlocking()
+bool UCameraCaptureManagerComponent::CaptureNonBlocking()
 {
   TRACE_CPUPROFILER_EVENT_SCOPE_STR("UCameraCaptureManagerComponent::CaptureNonBlocking")
   // if (!CaptureComponent.IsValid())
   if (!IsValid(CaptureComponent))
   {
     UE_LOG(LogCameraCaptureManager, Error, TEXT("CaptureColorNonBlocking: CaptureComponent is not valid!"));
-    return;
+    return false;
   }
 
   if (!IsValid(CaptureComponent->TextureTarget))
   {
     UE_LOG(LogCameraCaptureManager, Error, TEXT("CaptureColorNonBlocking: TextureTarget is not valid!"));
-    return;
+    return false;
   }
 
   if (!RenderRequestQueue.IsEmpty()) // if we are already requesting a frame there is no point in adding another
-    return;
+    return false;
 
   // Get RenderContex
   FTextureRenderTargetResource* renderTargetResource =
@@ -170,6 +186,7 @@ void UCameraCaptureManagerComponent::CaptureNonBlocking()
 
   // Set RenderCommandFence
   renderRequest->RenderFence.BeginFence();
+  return true;
 }
 
 /*
