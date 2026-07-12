@@ -61,6 +61,16 @@ public:
   UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture", Meta = (EditCondition = "!bCallbackOnCapture"))
   FString SubDirectoryName = "";
 
+  // Absolute base directory for saved captures. Empty (default) writes under
+  // ProjectSavedDir()/SubDirectoryName; a value overrides it (e.g. a host mount "/home/ue4/renders").
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture", Meta = (EditCondition = "!bCallbackOnCapture"))
+  FString OutputDirectoryOverride = "";
+
+  // Base file name for saved captures. Empty (default) uses "img_<counter>"; a value gives
+  // "<FileNamePrefix><counter>".
+  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Capture", Meta = (EditCondition = "!bCallbackOnCapture"))
+  FString FileNamePrefix = "";
+
   UPROPERTY(EditAnywhere, Category = "Logging")
   bool VerboseLogging = false;
 
@@ -89,8 +99,10 @@ public:
   virtual void TickComponent(float DeltaTime, enum ELevelTick TickType,
                              FActorComponentTickFunction* ThisTickFunction) override;
 
+  // Enqueues an async GPU readback of the capture's render target. Returns false (without
+  // enqueuing) if the capture component/target is invalid or a prior readback is still pending.
   UFUNCTION(BlueprintCallable, Category = "ImageCapture")
-  void CaptureNonBlocking();
+  bool CaptureNonBlocking();
 };
 
 class AsyncSaveImageToDiskTask : public FNonAbandonableTask
