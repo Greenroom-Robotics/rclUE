@@ -11,6 +11,23 @@ using Microsoft.Extensions.Logging;
 
 public class ros2lib : ModuleRules
 {
+    // Concrete RMW implementations must NOT be linked directly. rcl picks one at
+    // runtime from RMW_IMPLEMENTATION and librmw_implementation.so dlopens it.
+    // Each of these defines rmw_get_implementation_identifier(); linking one bakes
+    // its identifier into the binary, so it ignores RMW_IMPLEMENTATION and trips
+    // rcl's identity assert (exit 102) whenever the env asks for a different RMW.
+    // The env now ships several impls side by side, so the glob below would
+    // otherwise bake whichever the linker sees first. librmw_implementation.so
+    // (kept) re-exports the rmw API and forwards to the dlopened impl.
+    private static readonly HashSet<string> RMWImplementationLibs = new HashSet<string>
+    {
+        "librmw_zenoh_cpp.so",
+        "librmw_fastrtps_cpp.so",
+        "librmw_fastrtps_dynamic_cpp.so",
+        "librmw_cyclonedds_cpp.so",
+        "librmw_connextdds.so",
+    };
+
     private List<string> ROS2InstallPaths()
     {
         List<string> envs = new List<String>();
@@ -85,6 +102,7 @@ public class ros2lib : ModuleRules
 
                 foreach (var libName in libs)
                 {
+                    if (RMWImplementationLibs.Contains(Path.GetFileName(libName))) continue;
                     PublicSystemLibraries.Add(libName);
                     // RuntimeDependencies.Add(libName);
                 }
@@ -100,6 +118,7 @@ public class ros2lib : ModuleRules
 
             foreach (var libFilename in libs)
             {
+                if (RMWImplementationLibs.Contains(Path.GetFileName(libFilename))) continue;
                 PublicSystemLibraries.Add(libFilename);
                 // RuntimeDependencies.Add(libFilename);
             }
